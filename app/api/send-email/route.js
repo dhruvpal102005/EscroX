@@ -24,7 +24,7 @@ export async function POST(req) {
         `;
         const buttonStyle = `
             display: inline-block;
-            background-color: #f5a623;
+            background-color: #ffb43b;
             color: white;
             padding: 12px 24px;
             text-decoration: none;

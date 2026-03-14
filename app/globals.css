@@ -40,7 +40,7 @@
     }
 
     .btn-primary {
-        background: #f5a623;
+        background: #ffb43b;
         color: #ffffff;
         font-weight: 700;
         padding: 0.8rem 1.75rem;
@@ -137,7 +137,7 @@
     }
 
     .input:focus {
-        border-color: #f5a623;
+        border-color: #ffb43b;
         background: #fff;
     }
 

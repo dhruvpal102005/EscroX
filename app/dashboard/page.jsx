@@ -60,7 +60,7 @@ export default function DashboardPage() {
         <AuthGuard><Navbar />
             <div className="min-h-screen bg-surface pt-16 flex items-center justify-center">
                 <div className="w-8 h-8 rounded-full border-4 border-t-transparent animate-spin"
-                    style={{ borderColor: '#f5a623', borderTopColor: 'transparent' }} />
+                    style={{ borderColor: '#ffb43b', borderTopColor: 'transparent' }} />
             </div>
         </AuthGuard>
     );
@@ -113,7 +113,7 @@ function ClientDashboard({ contracts, totalValue, totalLocked, totalReleased, pr
                         <input
                             type="text"
                             placeholder="Search contracts, transactions..."
-                            className="w-full bg-slate-50 border border-slate-100 rounded-full py-2 pl-11 pr-4 text-sm focus:ring-2 focus:ring-[#f5a623] outline-none"
+                            className="w-full bg-slate-50 border border-slate-100 rounded-full py-2 pl-11 pr-4 text-sm focus:ring-2 focus:ring-[#ffb43b] outline-none"
                         />
                     </div>
 
@@ -157,7 +157,7 @@ function ClientDashboard({ contracts, totalValue, totalLocked, totalReleased, pr
                                                 </div>
                                                 <div className="flex items-center gap-4">
                                                     <div className="w-12 h-12 rounded-2xl bg-[#fff8ec] flex items-center justify-center shrink-0">
-                                                        <Lock className="text-[#f5a623]" size={20} />
+                                                        <Lock className="text-[#ffb43b]" size={20} />
                                                     </div>
                                                     <div>
                                                         <p className="text-[10px] font-bold text-slate-900 uppercase tracking-widest mb-1">Locked in Escrow</p>
@@ -193,7 +193,7 @@ function ClientDashboard({ contracts, totalValue, totalLocked, totalReleased, pr
                                         {/* Right Donut Chart */}
                                         <div className="w-full lg:w-80 flex flex-col items-center justify-center">
                                             <div className="relative w-56 h-56 flex items-center justify-center rounded-full"
-                                                style={{ background: `conic-gradient(#10b981 0% ${releasedPercentage}%, #f5a623 ${releasedPercentage}% ${releasedPercentage + lockedPercentage}%, #f1f5f9 ${releasedPercentage + lockedPercentage}% 100%)` }}>
+                                                style={{ background: `conic-gradient(#10b981 0% ${releasedPercentage}%, #ffb43b ${releasedPercentage}% ${releasedPercentage + lockedPercentage}%, #f1f5f9 ${releasedPercentage + lockedPercentage}% 100%)` }}>
                                                 <div className="absolute inset-0 m-[18px] bg-white rounded-full flex flex-col items-center justify-center z-10 shadow-sm">
                                                     <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Value</span>
                                                     <span className="text-3xl font-black text-slate-900">${totalValue.toLocaleString()}</span>
@@ -201,7 +201,7 @@ function ClientDashboard({ contracts, totalValue, totalLocked, totalReleased, pr
                                             </div>
                                             <div className="flex gap-10 mt-6">
                                                 <div className="flex items-center gap-2">
-                                                    <div className="w-3 h-3 rounded-full bg-[#f5a623]"></div>
+                                                    <div className="w-3 h-3 rounded-full bg-[#ffb43b]"></div>
                                                     <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Locked</span>
                                                 </div>
                                                 <div className="flex items-center gap-2">
@@ -232,12 +232,12 @@ function ClientDashboard({ contracts, totalValue, totalLocked, totalReleased, pr
                                         <div className="flex flex-col items-center text-center z-10 bg-white px-6 mt-10 md:mt-0">
                                             <div className="w-[90px] h-[90px] rounded-full flex items-center justify-center mb-5 relative" style={{ background: '#fff8ec' }}>
                                                 {/* Rotating dashed border for high-tech look */}
-                                                <div className="absolute inset-0 rounded-full border-[3px] border-dashed border-[#f5a623] animate-[spin_12s_linear_infinite] opacity-60"></div>
-                                                <div className="w-[60px] h-[60px] rounded-full bg-[#f5a623] flex items-center justify-center shadow-lg shadow-[#f5a623]/30 z-10">
+                                                <div className="absolute inset-0 rounded-full border-[3px] border-dashed border-[#ffb43b] animate-[spin_12s_linear_infinite] opacity-60"></div>
+                                                <div className="w-[60px] h-[60px] rounded-full bg-[#ffb43b] flex items-center justify-center shadow-lg shadow-[#ffb43b]/30 z-10">
                                                     <Shield size={28} className="text-white absolute shrink-0" />
                                                 </div>
                                             </div>
-                                            <h3 className="text-sm font-bold text-[#f5a623] mb-1.5">Escrow Vault</h3>
+                                            <h3 className="text-sm font-bold text-[#ffb43b] mb-1.5">Escrow Vault</h3>
                                             <p className="text-2xl font-black text-slate-900">${totalLocked.toLocaleString()}</p>
                                             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Multi-Sig Secure</p>
                                         </div>
@@ -343,7 +343,7 @@ function ClientDashboard({ contracts, totalValue, totalLocked, totalReleased, pr
                             <div className="lg:col-span-1 space-y-6 lg:space-y-8">
                                 {/* Profile Card */}
                                 <div className="rounded-[24px] p-8 flex flex-col items-center text-center shadow-md relative overflow-hidden"
-                                    style={{ background: 'linear-gradient(135deg, #fcd34d 0%, #f5a623 100%)' }}>
+                                    style={{ background: 'linear-gradient(135deg, #fcd34d 0%, #ffb43b 100%)' }}>
                                     <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 rounded-full bg-white opacity-10"></div>
 
                                     <div className="w-24 h-24 rounded-full bg-slate-200 border-[6px] border-[#fbb32f] mb-4 overflow-hidden shrink-0 shadow-lg">
@@ -544,7 +544,7 @@ function FreelancerDashboard({ contracts, totalValue, totalLocked, totalReleased
                             Welcome back, {firstName}! <span>👋</span>
                         </h1>
                         <button className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold border-2 transition-all hover:bg-slate-50"
-                            style={{ borderColor: '#f5a623', color: '#f5a623' }}>
+                            style={{ borderColor: '#ffb43b', color: '#ffb43b' }}>
                             <ArrowRight size={15} /> Download report
                         </button>
                     </div>
@@ -567,7 +567,7 @@ function FreelancerDashboard({ contracts, totalValue, totalLocked, totalReleased
                                     <div className="flex-1 flex flex-col items-center justify-center relative -mt-4">
                                         {/* CSS Doughnut Chart — real overallProgress */}
                                         <div className="w-32 h-32 rounded-full flex items-center justify-center relative"
-                                            style={{ background: `conic-gradient(#f5a623 0% ${overallProgress}%, #1e293b ${overallProgress}% 100%)` }}>
+                                            style={{ background: `conic-gradient(#ffb43b 0% ${overallProgress}%, #1e293b ${overallProgress}% 100%)` }}>
                                             <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-inner relative z-10 flex-col">
                                                 <span className="text-xl font-black text-slate-900">{overallProgress}%</span>
                                                 <span className="text-[9px] text-slate-400 font-bold uppercase">Released</span>
@@ -577,14 +577,14 @@ function FreelancerDashboard({ contracts, totalValue, totalLocked, totalReleased
                                     {/* Sub Stats */}
                                     <div className="flex gap-4 mt-auto">
                                         <div className="flex-1 bg-slate-50 rounded-xl p-3 flex items-center gap-3">
-                                            <div className="text-[#f5a623]"><TrendingUp size={16} /></div>
+                                            <div className="text-[#ffb43b]"><TrendingUp size={16} /></div>
                                             <div>
                                                 <div className="text-sm font-bold text-slate-900">{completionRate}%</div>
                                                 <div className="text-[10px] text-slate-400">Completion rate</div>
                                             </div>
                                         </div>
                                         <div className="flex-1 bg-slate-50 rounded-xl p-3 flex items-center gap-3">
-                                            <div className="text-[#f5a623]"><CheckCircle size={16} /></div>
+                                            <div className="text-[#ffb43b]"><CheckCircle size={16} /></div>
                                             <div>
                                                 <div className="text-sm font-bold text-slate-900">{activeContracts.length}</div>
                                                 <div className="text-[10px] text-slate-400">Active contracts</div>
@@ -618,20 +618,20 @@ function FreelancerDashboard({ contracts, totalValue, totalLocked, totalReleased
                                             <svg viewBox={`0 0 ${SVG_W} ${SVG_H}`} preserveAspectRatio="none" className="w-full h-full">
                                                 <defs>
                                                     <linearGradient id="earningsGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                                                        <stop offset="0%" stopColor="#f5a623" stopOpacity="0.4" />
-                                                        <stop offset="100%" stopColor="#f5a623" stopOpacity="0.01" />
+                                                        <stop offset="0%" stopColor="#ffb43b" stopOpacity="0.4" />
+                                                        <stop offset="100%" stopColor="#ffb43b" stopOpacity="0.01" />
                                                     </linearGradient>
                                                 </defs>
                                                 <path d="M0 20 H400 M0 60 H400 M0 100 H400" stroke="#f1f5f9" strokeWidth="1" fill="none" />
                                                 {areaPath && <path d={areaPath} fill="url(#earningsGradient)" />}
-                                                {linePath && <path d={linePath} fill="none" stroke="#f5a623" strokeWidth="3" />}
-                                                {peakValue > 0 && <circle cx={peakPoint.x} cy={peakPoint.y} r="4" fill="#f5a623" stroke="#fff" strokeWidth="2" />}
+                                                {linePath && <path d={linePath} fill="none" stroke="#ffb43b" strokeWidth="3" />}
+                                                {peakValue > 0 && <circle cx={peakPoint.x} cy={peakPoint.y} r="4" fill="#ffb43b" stroke="#fff" strokeWidth="2" />}
                                             </svg>
                                         ) : (
                                             // Empty state wave
                                             <svg viewBox="0 0 400 120" preserveAspectRatio="none" className="w-full h-full opacity-30">
-                                                <path d="M0 100 C100,100 200,100 400,100 L400,120 L0,120 Z" fill="#f5a623" opacity="0.2" />
-                                                <path d="M0 100 C100,100 200,100 400,100" fill="none" stroke="#f5a623" strokeWidth="2" strokeDasharray="6 4" />
+                                                <path d="M0 100 C100,100 200,100 400,100 L400,120 L0,120 Z" fill="#ffb43b" opacity="0.2" />
+                                                <path d="M0 100 C100,100 200,100 400,100" fill="none" stroke="#ffb43b" strokeWidth="2" strokeDasharray="6 4" />
                                             </svg>
                                         )}
                                         {/* Tooltip on the peak month */}
@@ -707,7 +707,7 @@ function FreelancerDashboard({ contracts, totalValue, totalLocked, totalReleased
                                                                 <div className="flex items-center gap-3">
                                                                     <div className="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                                                                         <div className="h-full rounded-full transition-all"
-                                                                            style={{ width: `${progress}%`, background: '#f5a623' }} />
+                                                                            style={{ width: `${progress}%`, background: '#ffb43b' }} />
                                                                     </div>
                                                                     <span className="font-bold text-slate-900 text-xs">{progress}%</span>
                                                                 </div>
@@ -734,7 +734,7 @@ function FreelancerDashboard({ contracts, totalValue, totalLocked, totalReleased
 
                             {/* Profile Card */}
                             <div className="rounded-3xl p-8 flex flex-col items-center text-center shadow-md relative overflow-hidden"
-                                style={{ background: 'linear-gradient(135deg, #fcd34d 0%, #f5a623 100%)' }}>
+                                style={{ background: 'linear-gradient(135deg, #fcd34d 0%, #ffb43b 100%)' }}>
                                 {/* Decorative circle */}
                                 <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 rounded-full bg-white opacity-5"></div>
 

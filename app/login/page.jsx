@@ -55,7 +55,7 @@ export default function LoginPage() {
             <div className="hidden lg:flex flex-col justify-between w-1/2 p-14"
                 style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%)' }}>
                 <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: '#f5a623' }}>
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: '#ffb43b' }}>
                         <Shield size={18} className="text-white" />
                     </div>
                     <span className="font-extrabold text-lg text-white">EscrowX</span>
@@ -63,7 +63,7 @@ export default function LoginPage() {
                 <div>
                     <h2 className="text-4xl font-black text-white leading-tight mb-4">
                         Trust is a<br />
-                        <span style={{ color: '#f5a623' }}>Protocol,</span><br />
+                        <span style={{ color: '#ffb43b' }}>Protocol,</span><br />
                         Not a Promise.
                     </h2>
                     <p className="text-slate-400 text-base leading-relaxed mb-10">
@@ -85,7 +85,7 @@ export default function LoginPage() {
             <div className="flex-1 flex items-center justify-center p-8">
                 <div className="w-full max-w-md">
                     <div className="lg:hidden flex items-center gap-2 mb-8">
-                        <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: '#f5a623' }}>
+                        <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: '#ffb43b' }}>
                             <Shield size={16} className="text-white" />
                         </div>
                         <span className="font-extrabold text-slate-900">EscrowX</span>

@@ -17,7 +17,7 @@ const Dashboard = () => {
         { label: 'Total Contract Value', value: `$${totalValue.toLocaleString()}`, icon: TrendingUp, color: '#3b54f6', bg: '#eef0ff' },
         { label: 'Locked in Vault', value: `$${totalLocked.toLocaleString()}`, icon: Lock, color: '#8b5cf6', bg: '#f5f3ff' },
         { label: 'Released to Freelancers', value: `$${totalReleased.toLocaleString()}`, icon: CheckCircle, color: '#10b981', bg: '#ecfdf5' },
-        { label: 'Active Contracts', value: contracts.length, icon: Clock, color: '#f5a623', bg: '#fff8ec' },
+        { label: 'Active Contracts', value: contracts.length, icon: Clock, color: '#ffb43b', bg: '#fff8ec' },
     ];
 
     return (
@@ -117,7 +117,7 @@ const Dashboard = () => {
                                             </div>
                                             <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
                                                 <div className="h-full rounded-full transition-all"
-                                                    style={{ width: `${progress}%`, background: 'linear-gradient(90deg, #f5a623, #10b981)' }} />
+                                                    style={{ width: `${progress}%`, background: 'linear-gradient(90deg, #ffb43b, #10b981)' }} />
                                             </div>
                                         </div>
                                     </Card>

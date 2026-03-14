@@ -44,9 +44,36 @@ EscroX follows a modern full-stack architecture combining Web2 speed with Web3 s
 - **Lucide-React**: A rich icon set for a premium UI feel.
 - **AuthGuard System**: Protected routes to ensure secure access to dashboards and contract details.
 
-### 4. Advanced Features
+### 4. Escrow-as-a-Service (EaaS)
+- **Programmable Infrastructure**: Exposes the escrow engine as a standard REST API.
+- **Developer Portal**: Accessible at `/integration`, providing API keys and documentation.
+- **Webhook Capabilities**: Platforms can integrate automated payments into their own work flows.
+
+---
+
+## 🔌 API Documentation (v1)
+
+EscroX provides a unified API for external platforms (e.g., Fiverr, Upwork) to secure their payments.
+
+### Endpoints
+
+### 5. Advanced Features
 - **AI Drafter**: Uses `@google/genai` to parse natural language prompts like *"I need a $2000 logo in 2 weeks"* into a structured 3-milestone contract.
 - **Fiat Bridge**: A simulated Razorpay integration allows clients to pay in INR, which "mints" virtual escrow tokens for freelancers to redeem.
+
+#### 1. Create Escrow
+`POST /api/v1/escrow/create`
+- **Body**: `clientData`, `freelancerData`, `contractData`.
+- **Returns**: `contractId`, `status`, `url`.
+
+#### 2. Approve Milestone
+`POST /api/v1/escrow/approve`
+- **Body**: `contractId`, `milestoneId`, `amount`.
+- **Returns**: Success confirmation.
+
+#### 3. Get Status
+`GET /api/v1/escrow/status/{id}`
+- **Returns**: Real-time contract status and milestone progress.
 
 ---
 

@@ -104,11 +104,11 @@ const ContractPage = () => {
                             <React.Fragment key={stage}>
                                 <div className="flex flex-col items-center">
                                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${i < currentStepIdx ? 'bg-green-500 text-white' : i === currentStepIdx ? 'text-white' : 'bg-slate-100 text-slate-400'}`}
-                                        style={i === currentStepIdx ? { background: '#f5a623' } : {}}>
+                                        style={i === currentStepIdx ? { background: '#ffb43b' } : {}}>
                                         {i < currentStepIdx ? <CheckCircle size={14} /> : i + 1}
                                     </div>
                                     <span className={`text-[9px] mt-1.5 font-semibold whitespace-nowrap ${i === currentStepIdx ? 'text-brand' : i < currentStepIdx ? 'text-green-600' : 'text-slate-300'}`}
-                                        style={i === currentStepIdx ? { color: '#f5a623' } : {}}>
+                                        style={i === currentStepIdx ? { color: '#ffb43b' } : {}}>
                                         {stage}
                                     </span>
                                 </div>
@@ -211,7 +211,7 @@ const ContractPage = () => {
                                     return (
                                         <div key={log.id} className="flex gap-3">
                                             <div className="w-6 h-6 rounded-full shrink-0 flex items-center justify-center" style={{ background: '#fff8ec' }}>
-                                                <Icon size={11} style={{ color: '#f5a623' }} />
+                                                <Icon size={11} style={{ color: '#ffb43b' }} />
                                             </div>
                                             <div>
                                                 <p className="text-xs text-slate-700 font-semibold leading-tight">{log.action}</p>

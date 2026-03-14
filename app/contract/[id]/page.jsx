@@ -86,7 +86,7 @@ export default function ContractPage() {
     // Load existing reviews for this contract
     useEffect(() => {
         if (!id) return;
-        getContractReviews(id).then(setReviews).catch(() => {});
+        getContractReviews(id).then(setReviews).catch(() => { });
     }, [id]);
 
     const [ethRates, setEthRates] = useState({});
@@ -97,14 +97,14 @@ export default function ContractPage() {
             .then(r => r.json())
             .then(d => {
                 if (d?.ethereum) setEthRates({ USD: d.ethereum.usd, EUR: d.ethereum.eur, GBP: d.ethereum.gbp, INR: d.ethereum.inr });
-            }).catch(() => {});
+            }).catch(() => { });
     }, []);
 
     if (loading) return (
         <AuthGuard><Navbar />
             <div className="min-h-screen bg-surface pt-16 flex items-center justify-center">
                 <div className="w-8 h-8 rounded-full border-4 border-t-transparent animate-spin"
-                    style={{ borderColor: '#f5a623', borderTopColor: 'transparent' }} />
+                    style={{ borderColor: '#ffb43b', borderTopColor: 'transparent' }} />
             </div>
         </AuthGuard>
     );
@@ -280,8 +280,8 @@ export default function ContractPage() {
                     onMouseLeave={() => interactive && setHoverRating(0)}
                     className={interactive ? 'cursor-pointer' : 'cursor-default'}>
                     <Star size={18}
-                        fill={(interactive ? (hoverRating || myRating) >= n : count >= n) ? '#f5a623' : 'none'}
-                        stroke={(interactive ? (hoverRating || myRating) >= n : count >= n) ? '#f5a623' : '#cbd5e1'}
+                        fill={(interactive ? (hoverRating || myRating) >= n : count >= n) ? '#ffb43b' : 'none'}
+                        stroke={(interactive ? (hoverRating || myRating) >= n : count >= n) ? '#ffb43b' : '#cbd5e1'}
                     />
                 </button>
             ))}
@@ -373,23 +373,23 @@ export default function ContractPage() {
                                     <div key={stage} className="flex items-center flex-1 last:flex-none">
                                         <div className="flex flex-col items-center min-w-0">
                                             <div className="w-10 h-10 rounded-full flex items-center justify-center text-base mb-2 transition-all"
-                                                style={isDone ? { background: '#f5a623', boxShadow: '0 0 0 4px #fef3c7' }
-                                                    : isActive ? { background: '#f5a623', boxShadow: '0 0 0 4px #fef3c7' }
+                                                style={isDone ? { background: '#ffb43b', boxShadow: '0 0 0 4px #fef3c7' }
+                                                    : isActive ? { background: '#ffb43b', boxShadow: '0 0 0 4px #fef3c7' }
                                                         : { background: '#f1f5f9' }}>
                                                 {isDone
                                                     ? <CheckCircle size={18} color="#fff" />
                                                     : <span className="text-[13px]">{stepIcons[stage] || '⚪'}</span>}
                                             </div>
-                                            <span className={`text-[10px] font-black uppercase tracking-wider whitespace-nowrap ${isActive ? 'text-[#f5a623]' : isDone ? 'text-[#f5a623]' : 'text-slate-300'}`}>
+                                            <span className={`text-[10px] font-black uppercase tracking-wider whitespace-nowrap ${isActive ? 'text-[#ffb43b]' : isDone ? 'text-[#ffb43b]' : 'text-slate-300'}`}>
                                                 {stage}
                                             </span>
-                                            <span className={`text-[9px] font-medium mt-0.5 ${isActive ? 'text-[#f5a623]' : isDone ? 'text-emerald-500' : 'text-slate-300'}`}>
+                                            <span className={`text-[9px] font-medium mt-0.5 ${isActive ? 'text-[#ffb43b]' : isDone ? 'text-emerald-500' : 'text-slate-300'}`}>
                                                 {isDone ? 'COMPLETED' : isActive ? 'IN PROGRESS' : 'PENDING'}
                                             </span>
                                         </div>
                                         {i < statusFlow.length - 1 && (
                                             <div className="flex-1 h-[3px] mx-2 mb-6 rounded-full"
-                                                style={{ background: isDone ? '#f5a623' : '#e2e8f0' }} />
+                                                style={{ background: isDone ? '#ffb43b' : '#e2e8f0' }} />
                                         )}
                                     </div>
                                 );
@@ -404,10 +404,10 @@ export default function ContractPage() {
 
                             {/* Freelancer accept/decline banner */}
                             {contract.status === 'Agreement' && isFreelancer && (
-                                <div className="rounded-[20px] p-6 border-2 border-[#f5a623] bg-[#fff8ec]">
+                                <div className="rounded-[20px] p-6 border-2 border-[#ffb43b] bg-[#fff8ec]">
                                     <div className="flex flex-col md:flex-row items-center gap-4">
                                         <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shrink-0 shadow-sm">
-                                            <PartyPopper size={24} className="text-[#f5a623]" />
+                                            <PartyPopper size={24} className="text-[#ffb43b]" />
                                         </div>
                                         <div className="flex-1 text-center md:text-left">
                                             <h3 className="text-lg font-black text-slate-900">New Contract Offer!</h3>
@@ -422,7 +422,7 @@ export default function ContractPage() {
                                             <button disabled={!!actionLoading}
                                                 onClick={() => act('accept', () => acceptContract(id, contract.freelancerName))}
                                                 className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-bold text-white transition-all"
-                                                style={{ background: '#f5a623' }}>
+                                                style={{ background: '#ffb43b' }}>
                                                 <CheckCircle size={15} /> Accept Offer
                                             </button>
                                         </div>
@@ -436,7 +436,7 @@ export default function ContractPage() {
                                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-100">
                                         <div className="p-5 border-b border-slate-100" style={{ background: 'linear-gradient(to right, #fff8ec, #fff)' }}>
                                             <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #f5a623, #e09000)' }}>
+                                                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #ffb43b, #e09000)' }}>
                                                     <Upload size={20} className="text-white" />
                                                 </div>
                                                 <div>
@@ -478,7 +478,7 @@ export default function ContractPage() {
                                                         act(`sub-${milestoneId}`, () => submitMilestone(id, milestoneId, evidenceUrl, contract.freelancerName, aiResult));
                                                     }}
                                                     className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-60 transition-all"
-                                                    style={{ background: 'linear-gradient(135deg, #f5a623, #e09000)' }}>
+                                                    style={{ background: 'linear-gradient(135deg, #ffb43b, #e09000)' }}>
                                                     {actionLoading ? (
                                                         <><div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" /> Submitting...</>
                                                     ) : (
@@ -499,7 +499,7 @@ export default function ContractPage() {
                                             <button disabled={!!actionLoading}
                                                 onClick={() => act('fund', () => fundContract(id, contract.clientName))}
                                                 className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white transition-all disabled:opacity-60"
-                                                style={{ background: '#f5a623' }}>
+                                                style={{ background: '#ffb43b' }}>
                                                 <Lock size={13} /> {actionLoading === 'fund' ? 'Locking...' : 'Deposit & Lock Funds'}
                                             </button>
                                         )}
@@ -558,9 +558,8 @@ export default function ContractPage() {
                                                                 <Bot size={12} className="text-white" />
                                                             </div>
                                                             <span className="text-xs font-bold text-slate-700">AI Verification</span>
-                                                            <span className={`ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                                                                m.aiConfidence === 'high' ? 'bg-green-100 text-green-700' : m.aiConfidence === 'medium' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
-                                                            }`}>
+                                                            <span className={`ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full ${m.aiConfidence === 'high' ? 'bg-green-100 text-green-700' : m.aiConfidence === 'medium' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
+                                                                }`}>
                                                                 {m.aiConfidence === 'high' ? '✓ High Confidence' : m.aiConfidence === 'medium' ? '⚠ Medium' : '⚠ Low'}
                                                             </span>
                                                         </div>
@@ -589,7 +588,7 @@ export default function ContractPage() {
                                                                 setConfirmSubmit({ milestoneId: m.id, evidenceUrl: url, milestoneTitle: m.title });
                                                             }}
                                                             className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white disabled:opacity-60 transition-all"
-                                                            style={{ background: '#f5a623' }}>
+                                                            style={{ background: '#ffb43b' }}>
                                                             <Upload size={12} /> {actionLoading === `sub-${m.id}` ? '...' : 'Submit Work'}
                                                         </button>
                                                     </div>
@@ -638,7 +637,7 @@ export default function ContractPage() {
                                             <div key={log.id || i} className="flex gap-3 items-start">
                                                 <div className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center"
                                                     style={{ background: '#fff8ec', border: '2px solid #fef3c7' }}>
-                                                    <Icon size={12} style={{ color: '#f5a623' }} />
+                                                    <Icon size={12} style={{ color: '#ffb43b' }} />
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-start justify-between gap-2">
@@ -672,7 +671,7 @@ export default function ContractPage() {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="bg-white rounded-[20px] border border-slate-100 shadow-sm p-6">
                                             <div className="flex items-center gap-2 mb-4">
-                                                <Star size={16} fill="#f5a623" stroke="#f5a623" />
+                                                <Star size={16} fill="#ffb43b" stroke="#ffb43b" />
                                                 <h3 className="font-black text-slate-900">{alreadyReviewed ? 'Your Review' : `Rate ${isClient ? contract.freelancerName : contract.clientName}`}</h3>
                                             </div>
                                             {alreadyReviewed ? (
@@ -687,10 +686,10 @@ export default function ContractPage() {
                                                     {renderStars(myRating, true)}
                                                     <textarea value={reviewComment} onChange={e => setReviewComment(e.target.value)}
                                                         placeholder="Share your experience (optional)..." rows={3}
-                                                        className="w-full mt-3 px-4 py-3 rounded-xl border border-slate-200 text-sm text-slate-700 focus:ring-2 focus:ring-[#f5a623] outline-none resize-none" />
+                                                        className="w-full mt-3 px-4 py-3 rounded-xl border border-slate-200 text-sm text-slate-700 focus:ring-2 focus:ring-[#ffb43b] outline-none resize-none" />
                                                     <button onClick={handleSubmitReview} disabled={!myRating || reviewSubmitting}
                                                         className="mt-3 w-full py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-50 transition-all"
-                                                        style={{ background: '#f5a623' }}>
+                                                        style={{ background: '#ffb43b' }}>
                                                         {reviewSubmitting ? 'Submitting...' : 'Submit Review'}
                                                     </button>
                                                 </>
@@ -698,7 +697,7 @@ export default function ContractPage() {
                                         </div>
                                         <div className="bg-white rounded-[20px] border border-slate-100 shadow-sm p-6">
                                             <div className="flex items-center gap-2 mb-4">
-                                                <Star size={16} fill="#f5a623" stroke="#f5a623" />
+                                                <Star size={16} fill="#ffb43b" stroke="#ffb43b" />
                                                 <h3 className="font-black text-slate-900">{isClient ? contract.freelancerName : contract.clientName}'s Review</h3>
                                             </div>
                                             {otherReview ? (
@@ -724,7 +723,7 @@ export default function ContractPage() {
 
                             {/* Vault Status */}
                             <div className="rounded-[20px] p-6 relative overflow-hidden text-white"
-                                style={{ background: 'linear-gradient(135deg, #f5a623 0%, #e8961a 100%)' }}>
+                                style={{ background: 'linear-gradient(135deg, #ffb43b 0%, #e8961a 100%)' }}>
                                 <div className="absolute top-0 right-0 w-32 h-32 rounded-full bg-white/10 -mr-8 -mt-8" />
                                 <div className="flex items-center justify-between mb-4 relative z-10">
                                     <div className="flex items-center gap-2">

@@ -69,14 +69,14 @@ export default function SignupPage() {
             <div className="hidden lg:flex flex-col justify-between w-1/2 p-14"
                 style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%)' }}>
                 <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: '#f5a623' }}>
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: '#ffb43b' }}>
                         <Shield size={18} className="text-white" />
                     </div>
                     <span className="font-extrabold text-lg text-white">EscrowX</span>
                 </div>
                 <div>
                     <h2 className="text-4xl font-black text-white leading-tight mb-4">
-                        Join the future<br />of <span style={{ color: '#f5a623' }}>trustless</span><br />payments.
+                        Join the future<br />of <span style={{ color: '#ffb43b' }}>trustless</span><br />payments.
                     </h2>
                     <p className="text-slate-400 leading-relaxed mb-8">
                         Whether you are a client protecting your investment or a freelancer ensuring you get paid —EscrowX has you covered.
@@ -112,7 +112,7 @@ export default function SignupPage() {
                             {roles.map(r => (
                                 <button key={r.value} type="button" onClick={() => setRole(r.value)}
                                     className="p-4 rounded-xl border-2 text-left transition-all"
-                                    style={{ borderColor: role === r.value ? '#f5a623' : '#e2e8f0', background: role === r.value ? '#fff8ec' : '#fff' }}>
+                                    style={{ borderColor: role === r.value ? '#ffb43b' : '#e2e8f0', background: role === r.value ? '#fff8ec' : '#fff' }}>
                                     <p className="font-bold text-slate-900 text-sm">{r.label}</p>
                                     <p className="text-xs text-slate-400 mt-1 leading-tight">{r.desc}</p>
                                 </button>
