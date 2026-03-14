@@ -56,6 +56,7 @@ export function AuthProvider({ children }) {
     async function upsertUserDoc(firebaseUser, extra = {}) {
         const ref = doc(db, 'users', firebaseUser.uid);
         const snap = await getDoc(ref);
+
         if (!snap.exists()) {
             await setDoc(ref, {
                 uid: firebaseUser.uid,
@@ -66,15 +67,23 @@ export function AuthProvider({ children }) {
                 country: extra.country || '',
                 createdAt: serverTimestamp(),
             });
+        } else if (extra.role && snap.data().role !== extra.role) {
+            // Update role if explicitly provided and different (e.g., retrying signup)
+            await updateDoc(ref, {
+                role: extra.role,
+                ...(extra.country && { country: extra.country }),
+                updatedAt: serverTimestamp()
+            });
         }
+
         const updated = (await getDoc(ref)).data();
         setProfile(updated);
         return updated;
     }
 
-    async function loginWithGoogle() {
+    async function loginWithGoogle(role = 'client') {
         const result = await signInWithPopup(auth, googleProvider);
-        await upsertUserDoc(result.user);
+        await upsertUserDoc(result.user, { role });
         return result.user;
     }
 

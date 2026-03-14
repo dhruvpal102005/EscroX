@@ -27,9 +27,14 @@ export default function SignupPage() {
     }, [user, router]);
 
     const handleGoogle = async () => {
+        if (!role) {
+            toast.error('Please select a role first');
+            setError('Please select a role first.');
+            return;
+        }
         try {
             setError(''); setLoading(true);
-            await loginWithGoogle();
+            await loginWithGoogle(role);
             toast.success('Account created!');
         } catch {
             if (!user) {

@@ -15,7 +15,8 @@ import {
     ArrowLeft, Lock, ExternalLink, User, ChevronRight, Wallet
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { useWriteContract, useAccount } from 'wagmi';
+import { useWriteContract, useAccount, useSwitchChain } from 'wagmi';
+import { localhost } from 'wagmi/chains';
 import { ESCROW_ADDRESS, ESCROW_ABI } from '@/lib/contracts';
 
 const iconMap = { shield: Shield, lock: Lock, upload: Upload, check: CheckCircle };
@@ -23,8 +24,9 @@ const iconMap = { shield: Shield, lock: Lock, upload: Upload, check: CheckCircle
 export default function ContractPage() {
     const { id } = useParams();
     const router = useRouter();
-    const { isConnected, address: walletAddress } = useAccount();
+    const { isConnected, address: walletAddress, chainId } = useAccount();
     const { writeContractAsync } = useWriteContract();
+    const { switchChainAsync } = useSwitchChain();
     const { user } = useAuth();
     const [contract, setContract] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -71,8 +73,14 @@ export default function ContractPage() {
                 const milestone = contract.milestones.find(m => m.id === mId);
                 const mIdx = milestone.order; // Assuming order is the index
 
+                if (chainId !== localhost.id) {
+                    toast.loading('Switching to Local Testnet...', { id: 'tx' });
+                    await switchChainAsync({ chainId: localhost.id });
+                }
+
                 toast.loading('Confirming release on-chain...', { id: 'tx' });
                 const hash = await writeContractAsync({
+                    chainId: localhost.id,
                     address: ESCROW_ADDRESS,
                     abi: ESCROW_ABI,
                     functionName: 'approveMilestone',

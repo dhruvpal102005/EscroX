@@ -98,7 +98,7 @@ const LandingPage = () => {
                     </div>
 
                     {/* Send / Start Escrow card */}
-                    <div className="float-card absolute bottom-16 left-6 p-5 w-52 z-20">
+                    <div className="float-card absolute bottom-16 left-16 p-5 w-52 z-20">
                         <p className="text-sm font-semibold text-slate-700 mb-3">Start Escrow</p>
                         <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: 'linear-gradient(135deg, #3b54f6, #7c3aed)' }}>
                             <Shield size={22} className="text-white" />

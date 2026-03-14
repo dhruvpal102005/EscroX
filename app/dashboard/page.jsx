@@ -6,12 +6,12 @@ import Navbar from '@/components/Navbar';
 import Card from '@/components/Card';
 import AuthGuard from '@/components/AuthGuard';
 import { useAuth } from '@/context/AuthContext';
-import { getUserContracts } from '@/lib/firestore';
+import { getUserContracts, getFreelancerContracts } from '@/lib/firestore';
 import { getStatusColor } from '@/lib/store';
-import { TrendingUp, Lock, CheckCircle, Clock, ArrowRight, Plus, Globe, AlertTriangle } from 'lucide-react';
+import { TrendingUp, Lock, CheckCircle, Clock, ArrowRight, Plus, Globe, AlertTriangle, Briefcase } from 'lucide-react';
 
 export default function DashboardPage() {
-    const { user } = useAuth();
+    const { user, profile } = useAuth();
     const router = useRouter();
     const [contracts, setContracts] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -19,28 +19,43 @@ export default function DashboardPage() {
     const [error, setError] = useState('');
 
     useEffect(() => {
-        if (!user) return;
+        if (!user || !profile) return;
         setLoading(true);
-        getUserContracts(user.uid)
+        const fetchContracts = profile.role === 'freelancer'
+            ? getFreelancerContracts(profile.email)
+            : getUserContracts(user.uid);
+
+        fetchContracts
             .then(setContracts)
             .catch(err => {
                 console.error("Dashboard fetch error:", err);
                 setError(err.message || "Failed to load contracts.");
             })
             .finally(() => setLoading(false));
-    }, [user]);
+    }, [user, profile]);
 
     const sum = (fn) => contracts.reduce(fn, 0);
     const totalValue = sum((s, c) => s + (c.totalValue || 0));
     const totalLocked = sum((s, c) => s + (c.milestones || []).filter(m => m.status !== 'Approved').reduce((a, m) => a + m.amount, 0));
     const totalReleased = sum((s, c) => s + (c.milestones || []).filter(m => m.status === 'Approved').reduce((a, m) => a + m.amount, 0));
 
-    const stats = [
+    const isFreelancer = profile?.role === 'freelancer';
+
+    const clientStats = [
         { label: 'Total Contract Value', value: `$${totalValue.toLocaleString()}`, icon: TrendingUp, color: '#3b54f6', bg: '#eef0ff' },
         { label: 'Locked in Vault', value: `$${totalLocked.toLocaleString()}`, icon: Lock, color: '#8b5cf6', bg: '#f5f3ff' },
         { label: 'Released', value: `$${totalReleased.toLocaleString()}`, icon: CheckCircle, color: '#10b981', bg: '#ecfdf5' },
         { label: 'Active Contracts', value: contracts.length, icon: Clock, color: '#f5a623', bg: '#fff8ec' },
     ];
+
+    const freelancerStats = [
+        { label: 'Total Project Value', value: `$${totalValue.toLocaleString()}`, icon: Briefcase, color: '#3b54f6', bg: '#eef0ff' },
+        { label: 'Pending in Escrow', value: `$${totalLocked.toLocaleString()}`, icon: Lock, color: '#f5a623', bg: '#fff8ec' },
+        { label: 'Total Earned', value: `$${totalReleased.toLocaleString()}`, icon: TrendingUp, color: '#10b981', bg: '#ecfdf5' },
+        { label: 'Active Projects', value: contracts.length, icon: Clock, color: '#8b5cf6', bg: '#f5f3ff' },
+    ];
+
+    const stats = isFreelancer ? freelancerStats : clientStats;
 
     return (
         <AuthGuard>
@@ -50,12 +65,18 @@ export default function DashboardPage() {
                     {/* Header */}
                     <div className="flex items-center justify-between mb-8">
                         <div>
-                            <h1 className="text-2xl font-black text-slate-900">Escrow Dashboard</h1>
-                            <p className="text-slate-400 mt-0.5 text-sm">Manage your cross-border payment contracts</p>
+                            <h1 className="text-2xl font-black text-slate-900">
+                                {isFreelancer ? 'Freelancer Dashboard' : 'Escrow Dashboard'}
+                            </h1>
+                            <p className="text-slate-400 mt-0.5 text-sm">
+                                {isFreelancer ? 'Manage your upcoming projects and earnings' : 'Manage your cross-border payment contracts'}
+                            </p>
                         </div>
-                        <Link href="/new-contract" className="btn-primary">
-                            <Plus size={15} /> New Contract
-                        </Link>
+                        {!isFreelancer && (
+                            <Link href="/new-contract" className="btn-primary">
+                                <Plus size={15} /> New Contract
+                            </Link>
+                        )}
                     </div>
 
                     {/* Stats */}

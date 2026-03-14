@@ -2,11 +2,12 @@
 
 import React from 'react';
 import {
-    getDefaultConfig,
     RainbowKitProvider,
     lightTheme,
+    connectorsForWallets,
 } from '@rainbow-me/rainbowkit';
-import { WagmiProvider } from 'wagmi';
+import { metaMaskWallet, injectedWallet } from '@rainbow-me/rainbowkit/wallets';
+import { WagmiProvider, createConfig, http } from 'wagmi';
 import {
     mainnet,
     polygon,
@@ -14,7 +15,7 @@ import {
     arbitrum,
     base,
     sepolia,
-    hardhat,
+    localhost,
 } from 'wagmi/chains';
 import {
     QueryClientProvider,
@@ -23,16 +24,29 @@ import {
 
 import '@rainbow-me/rainbowkit/styles.css';
 
-// Using a public demo Project ID for now to prevent 403 errors. 
-// User MUST replace this with their own from https://cloud.walletconnect.com for production.
-const projectId = 'c652d0148879353d7e965d7f6f361ea5';
+const projectId = 'demo'; // bypassed by manual connectors
 
-export function Web3Provider({ children }) {
-    // Only init the config once per client session to prevent "Init called 4 times"
-    const [config] = React.useState(() => getDefaultConfig({
+const connectors = connectorsForWallets(
+    [
+        {
+            groupName: 'Recommended',
+            wallets: [metaMaskWallet, injectedWallet],
+        },
+    ],
+    {
         appName: 'EscrowX',
         projectId: projectId,
-        chains: [hardhat, sepolia],
+    }
+);
+
+export function Web3Provider({ children }) {
+    const [config] = React.useState(() => createConfig({
+        connectors,
+        chains: [localhost, sepolia],
+        transports: {
+            [localhost.id]: http('http://127.0.0.1:8545'),
+            [sepolia.id]: http(),
+        },
         ssr: true,
     }));
 

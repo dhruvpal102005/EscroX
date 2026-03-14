@@ -8,15 +8,17 @@ import { useAuth } from '@/context/AuthContext';
 import { createContract } from '@/lib/firestore';
 import { Plus, Trash2, ArrowLeft, Shield, Check, AlertCircle, Sparkles, X, Wallet } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { useWriteContract, useWaitForTransactionReceipt, useAccount } from 'wagmi';
+import { useWriteContract, useWaitForTransactionReceipt, useAccount, useSwitchChain } from 'wagmi';
 import { parseEther, decodeEventLog } from 'viem';
+import { localhost } from 'wagmi/chains';
 import { ESCROW_ADDRESS, ESCROW_ABI } from '@/lib/contracts';
 
 export default function NewContractPage() {
     const { user, profile } = useAuth();
     const router = useRouter();
-    const { isConnected, address: walletAddress } = useAccount();
+    const { isConnected, address: walletAddress, chainId } = useAccount();
     const { writeContractAsync, isPending: isTxPending } = useWriteContract();
+    const { switchChainAsync } = useSwitchChain();
 
     const [form, setForm] = useState({
         title: '', clientName: '', clientCountry: '',
@@ -93,6 +95,12 @@ export default function NewContractPage() {
             setError('');
             setLoading(true);
 
+            // 0. Ensure user is on the correct network (Local Testnet)
+            if (chainId !== localhost.id) {
+                toast.loading('Switching to Local Testnet...', { id: 'tx' });
+                await switchChainAsync({ chainId: localhost.id });
+            }
+
             // 1. Prepare Smart Contract Data
             const msTitles = form.milestones.map(m => m.title || 'Untitled Milestone');
             const msAmounts = form.milestones.map(m => parseEther(m.amount.toString() || '0'));
@@ -102,6 +110,7 @@ export default function NewContractPage() {
 
             // 2. Trigger Blockchain Transaction
             const hash = await writeContractAsync({
+                chainId: localhost.id,
                 address: ESCROW_ADDRESS,
                 abi: ESCROW_ABI,
                 functionName: 'createProject',
