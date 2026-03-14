@@ -166,8 +166,8 @@ function ClientDashboard({ contracts, totalValue, totalLocked, totalReleased }) 
                             <div className="space-y-3">
                                 {contracts.map((contract) => {
                                     const ms = contract.milestones || [];
-                                    const approvedCount = ms.filter(m => m.status === 'Approved').length;
-                                    const progress = ms.length ? Math.round((approvedCount / ms.length) * 100) : 0;
+                                    const releasedAmount = ms.filter(m => m.status === 'Approved').reduce((s, m) => s + (m.amount || 0), 0);
+                                    const progress = contract.totalValue ? Math.round((releasedAmount / contract.totalValue) * 100) : 0;
                                     return (
                                         <Link key={contract.id} href={`/contract/${contract.id}`}>
                                             <Card hover className="p-5">
@@ -207,7 +207,7 @@ function ClientDashboard({ contracts, totalValue, totalLocked, totalReleased }) 
                                                 </div>
                                                 <div>
                                                     <div className="flex justify-between text-xs text-slate-400 mb-1.5">
-                                                        <span>{approvedCount}/{ms.length} milestones done</span>
+                                                        <span>${releasedAmount.toLocaleString()} / ${contract.totalValue.toLocaleString()} released</span>
                                                         <span className="font-semibold text-slate-600">{progress}%</span>
                                                     </div>
                                                     <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
@@ -232,6 +232,7 @@ function ClientDashboard({ contracts, totalValue, totalLocked, totalReleased }) 
 // FREELANCER DASHBOARD (New Professional UI)
 // ==========================================
 function FreelancerDashboard({ contracts, totalValue, totalLocked, totalReleased, profile }) {
+    const router = useRouter();
     const firstName = (profile?.displayName || 'Freelancer').split(' ')[0];
 
     // Filter out contracts that haven't been accepted yet (Agreement) or are Rejected
@@ -244,6 +245,8 @@ function FreelancerDashboard({ contracts, totalValue, totalLocked, totalReleased
         const released = (c.milestones || []).filter(m => m.status === 'Approved').reduce((ms, m) => ms + (m.amount || 0), 0);
         return s + released;
     });
+
+    const overallProgress = activeTotalValue > 0 ? Math.round((activeTotalReleased / activeTotalValue) * 100) : 0;
 
     return (
         <AuthGuard>
@@ -280,9 +283,9 @@ function FreelancerDashboard({ contracts, totalValue, totalLocked, totalReleased
                                     <div className="flex-1 flex flex-col items-center justify-center relative -mt-4">
                                         {/* CSS Doughnut Chart */}
                                         <div className="w-32 h-32 rounded-full flex items-center justify-center relative"
-                                            style={{ background: 'conic-gradient(#f5a623 0% 90%, #1e293b 90% 100%)' }}>
+                                            style={{ background: `conic-gradient(#f5a623 0% ${overallProgress}%, #1e293b ${overallProgress}% 100%)` }}>
                                             <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-inner relative z-10 flex-col">
-                                                <span className="text-xl font-black text-slate-900">90%</span>
+                                                <span className="text-xl font-black text-slate-900">{overallProgress}%</span>
                                                 <span className="text-[9px] text-slate-400 font-bold uppercase">Success</span>
                                             </div>
                                         </div>
@@ -292,8 +295,8 @@ function FreelancerDashboard({ contracts, totalValue, totalLocked, totalReleased
                                         <div className="flex-1 bg-slate-50 rounded-xl p-3 flex items-center gap-3">
                                             <div className="text-[#f5a623]"><TrendingUp size={16} /></div>
                                             <div>
-                                                <div className="text-sm font-bold text-slate-900">90%</div>
-                                                <div className="text-[10px] text-slate-400">Respond rate</div>
+                                                <div className="text-sm font-bold text-slate-900">{overallProgress}%</div>
+                                                <div className="text-[10px] text-slate-400">Total Progress</div>
                                             </div>
                                         </div>
                                         <div className="flex-1 bg-slate-50 rounded-xl p-3 flex items-center gap-3">
@@ -347,7 +350,7 @@ function FreelancerDashboard({ contracts, totalValue, totalLocked, totalReleased
                                         </div>
                                     </div>
                                     <div className="absolute bottom-4 left-6 flex gap-4 text-[9px] text-slate-400 font-bold z-10 w-full">
-                                        <span>JAN</span><span>FEB</span><span>MAR</span><span>APR</span><span>MAY</span><span>JUN</span>
+                                        <span>JAN</span><span>FEB</span><span>MAR</span><span>APR</span><span>MAY</span><span>JUN</span><span>JUL</span><span>AUG</span><span>SEP</span><span>OCT</span>
                                     </div>
                                 </Card>
 
@@ -373,8 +376,8 @@ function FreelancerDashboard({ contracts, totalValue, totalLocked, totalReleased
                                             <tbody className="divide-y divide-slate-100">
                                                 {activeContracts.map(contract => {
                                                     const ms = contract.milestones || [];
-                                                    const approvedCount = ms.filter(m => m.status === 'Approved').length;
-                                                    const progress = ms.length ? Math.round((approvedCount / ms.length) * 100) : 0;
+                                                    const releasedAmount = ms.filter(m => m.status === 'Approved').reduce((s, m) => s + (m.amount || 0), 0);
+                                                    const progress = contract.totalValue ? Math.round((releasedAmount / contract.totalValue) * 100) : 0;
 
                                                     // Generate a pseudo-random avatar background color based on name
                                                     const avatarColors = ['#fecdd3', '#fed7aa', '#fde047', '#bbf7d0', '#bfdbfe', '#e9d5ff'];
