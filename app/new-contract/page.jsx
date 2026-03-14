@@ -242,7 +242,8 @@ export default function NewContractPage() {
                 clientName: form.clientName,
                 title: form.title,
                 amount: totalValue,
-                id: id
+                id: id,
+                milestones: form.milestones
             });
             setTimeout(() => router.push(`/contract/${id}`), 1500);
         } catch (err) {
@@ -324,7 +325,8 @@ export default function NewContractPage() {
                                 clientName: form.clientName,
                                 title: form.title,
                                 amount: totalValue,
-                                id: verifyData.contractId
+                                id: verifyData.contractId,
+                                milestones: form.milestones
                             });
                             setTimeout(() => router.push(`/contract/${verifyData.contractId}`), 1500);
                             resolve();
