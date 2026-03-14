@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Card from '@/components/Card';
@@ -41,7 +41,29 @@ export default function NewContractPage() {
         const ms = [...f.milestones]; ms[i] = { ...ms[i], [key]: value }; return { ...f, milestones: ms };
     });
 
+    const [ethPrice, setEthPrice] = useState(0);
+
     const totalValue = form.milestones.reduce((s, m) => s + (parseFloat(m.amount) || 0), 0);
+    const totalWei = ethPrice ? parseEther(((totalValue / ethPrice) * 1.005).toFixed(18)) : 0n; // 0.5% margin
+
+    const fetchPrice = async () => {
+        try {
+            // In a real app, you'd call the contract's getLatestPrice or a public API
+            // For this UI, we'll fetch from a public API to keep it simple and reactive
+            const res = await fetch('https://api.coinbase.com/v2/prices/ETH-USD/spot');
+            const data = await res.json();
+            setEthPrice(parseFloat(data.data.amount));
+        } catch (err) {
+            console.error("Failed to fetch ETH price", err);
+            setEthPrice(2500); // Fallback to a reasonable default
+        }
+    };
+
+    useEffect(() => {
+        fetchPrice();
+        const interval = setInterval(fetchPrice, 30000); // Update every 30s
+        return () => clearInterval(interval);
+    }, []);
 
     const handleGenerate = async () => {
         if (!aiPrompt.trim()) return;
@@ -95,9 +117,9 @@ export default function NewContractPage() {
 
             // 1. Prepare Smart Contract Data
             const msTitles = form.milestones.map(m => m.title || 'Untitled Milestone');
-            const msAmounts = form.milestones.map(m => parseEther(m.amount.toString() || '0'));
-            const totalWei = msAmounts.reduce((a, b) => a + b, 0n);
-
+            // Convert USD amount to cents for the contract (which expects uint256 with 2 decimals)
+            const msAmountsUSD = form.milestones.map(m => BigInt(Math.round(parseFloat(m.amount) * 100)));
+            
             toast.loading('Confirm deposit in your wallet...', { id: 'tx' });
 
             // 2. Trigger Blockchain Transaction
@@ -105,9 +127,10 @@ export default function NewContractPage() {
                 address: ESCROW_ADDRESS,
                 abi: ESCROW_ABI,
                 functionName: 'createProject',
-                args: [form.freelancerWallet, msTitles, msAmounts],
+                args: [form.freelancerWallet, msTitles, msAmountsUSD],
                 value: totalWei,
             });
+
 
             toast.loading('Mining transaction on-chain...', { id: 'tx' });
 
@@ -279,12 +302,20 @@ export default function NewContractPage() {
                                     </div>
                                 ))}
                             </div>
-                            <div className="mt-5 pt-4 border-t border-slate-100 flex justify-between items-center">
-                                <span className="text-sm text-slate-400">Total Contract Value</span>
-                                <span className="text-2xl font-black text-slate-900">
-                                    {form.currency} {totalValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                                </span>
+                            <div className="mt-5 pt-4 border-t border-slate-100 flex flex-col items-end">
+                                <div className="flex justify-between items-center w-full mb-1">
+                                    <span className="text-sm text-slate-400">Total Contract Value</span>
+                                    <span className="text-2xl font-black text-slate-900">
+                                        {form.currency} {totalValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                    </span>
+                                </div>
+                                {ethPrice > 0 && (
+                                    <p className="text-xs text-blue-500 font-medium">
+                                        ≈ {((totalValue / ethPrice) * 1.005).toFixed(4)} ETH (@ ${ethPrice.toLocaleString()}/ETH)
+                                    </p>
+                                )}
                             </div>
+
                         </Card>
 
                         <button type="submit" disabled={loading} className="btn-primary w-full justify-center py-4 text-base disabled:opacity-60">
