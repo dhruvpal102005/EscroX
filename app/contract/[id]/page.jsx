@@ -109,7 +109,7 @@ export default function ContractPage() {
                     address: ESCROW_ADDRESS,
                     abi: ESCROW_ABI,
                     functionName: 'approveMilestone',
-                    args: [0n, BigInt(mIdx)], // Project ID 0 for now (demo simplification)
+                    args: [BigInt(contract.onChainId ?? 0), BigInt(mIdx)],
                 });
                 toast.loading('Mining release transaction...', { id: 'tx' });
             }

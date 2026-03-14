@@ -8,7 +8,7 @@ import { useAuth } from '@/context/AuthContext';
 import { createContract } from '@/lib/firestore';
 import { Plus, Trash2, ArrowLeft, Shield, Check, AlertCircle, Sparkles, X, Wallet } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { useWriteContract, useWaitForTransactionReceipt, useAccount, useSwitchChain } from 'wagmi';
+import { useWriteContract, useAccount, useSwitchChain, usePublicClient } from 'wagmi';
 import { parseEther, decodeEventLog } from 'viem';
 import { localhost } from 'wagmi/chains';
 import { ESCROW_ADDRESS, ESCROW_ABI } from '@/lib/contracts';
@@ -19,6 +19,7 @@ export default function NewContractPage() {
     const { isConnected, address: walletAddress, chainId } = useAccount();
     const { writeContractAsync, isPending: isTxPending } = useWriteContract();
     const { switchChainAsync } = useSwitchChain();
+    const publicClient = usePublicClient();
 
     const [form, setForm] = useState({
         title: '', clientName: '', clientCountry: '',
@@ -102,8 +103,7 @@ export default function NewContractPage() {
         }
     };
 
-    // We'll use a manual wait for transaction since we are in an async function
-    const { refetch: waitForReceipt } = useWaitForTransactionReceipt({ hash: undefined });
+    // We will use publicClient to wait for receipt
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -143,10 +143,22 @@ export default function NewContractPage() {
 
             toast.loading('Mining transaction on-chain...', { id: 'tx' });
 
-            // Instead of useWaitForTransactionReceipt hook (which is reactive), we'll poll for the receipt
-            // but for a smooth UX, let's keep it simple and just use the hash for now. 
-            // The projectId is just nextProjectId. If this is a demo, we can assume or fetch it.
-            // Better: Let's assume the user wants it properly. 
+            const receipt = await publicClient.waitForTransactionReceipt({ hash });
+            
+            let onChainProjectId = 0;
+            for (const log of receipt.logs) {
+                try {
+                    const decoded = decodeEventLog({
+                        abi: ESCROW_ABI,
+                        data: log.data,
+                        topics: log.topics,
+                    });
+                    if (decoded.eventName === 'ProjectCreated') {
+                        onChainProjectId = Number(decoded.args.projectId);
+                        break;
+                    }
+                } catch (e) { } // Ignore other logs
+            }
 
             // 3. Prepare Firestore Payload
             const payload = {
@@ -164,6 +176,7 @@ export default function NewContractPage() {
                 deadline: form.deadline || '',
                 txHash: hash,
                 onChain: true,
+                onChainId: onChainProjectId,
                 status: 'Funded',
                 milestones: form.milestones.map((m, i) => ({
                     title: m.title || `Milestone ${i + 1}`,
