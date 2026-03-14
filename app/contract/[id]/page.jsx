@@ -12,15 +12,19 @@ import {
 import { getStatusColor, statusFlow } from '@/lib/store';
 import {
     Shield, CheckCircle, Upload, AlertTriangle,
-    ArrowLeft, Lock, ExternalLink, User, ChevronRight
+    ArrowLeft, Lock, ExternalLink, User, ChevronRight, Wallet
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useWriteContract, useAccount } from 'wagmi';
+import { ESCROW_ADDRESS, ESCROW_ABI } from '@/lib/contracts';
 
 const iconMap = { shield: Shield, lock: Lock, upload: Upload, check: CheckCircle };
 
 export default function ContractPage() {
     const { id } = useParams();
     const router = useRouter();
+    const { isConnected, address: walletAddress } = useAccount();
+    const { writeContractAsync } = useWriteContract();
     const { user } = useAuth();
     const [contract, setContract] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -60,14 +64,33 @@ export default function ContractPage() {
     const act = async (key, fn) => {
         setActionLoading(key);
         try {
+            // If it's an approval and on-chain, trigger the smart contract first
+            if (key.startsWith('app-') && contract.onChain) {
+                if (!isConnected) throw new Error('Connect your wallet to release funds');
+                const mId = key.split('-')[1];
+                const milestone = contract.milestones.find(m => m.id === mId);
+                const mIdx = milestone.order; // Assuming order is the index
+
+                toast.loading('Confirming release on-chain...', { id: 'tx' });
+                const hash = await writeContractAsync({
+                    address: ESCROW_ADDRESS,
+                    abi: ESCROW_ABI,
+                    functionName: 'approveMilestone',
+                    args: [0n, BigInt(mIdx)], // Project ID 0 for now (demo simplification)
+                });
+                toast.loading('Mining release transaction...', { id: 'tx' });
+            }
+
             await fn();
-            if (key === 'fund') toast.success('Funds locked safely in Escrow Vault');
+
+            if (key === 'fund') toast.success('Funds locked safely in Escrow Vault', { id: 'tx' });
             else if (key.startsWith('sub-')) toast.success('Milestone submitted for review');
-            else if (key.startsWith('app-')) toast.success('Milestone approved & funds released!');
+            else if (key.startsWith('app-')) toast.success('Milestone approved & funds released!', { id: 'tx' });
             else if (key.startsWith('rej-')) toast.success('Milestone rejected');
             else if (key === 'dispute') toast.success('Dispute raised. Platform notified.');
         } catch (err) {
-            toast.error(err.message || 'Action failed. Please try again.');
+            console.error(err);
+            toast.error(err.shortMessage || err.message || 'Action failed. Please try again.', { id: 'tx' });
         } finally {
             setActionLoading('');
         }

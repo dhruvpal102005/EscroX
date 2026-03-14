@@ -14,6 +14,7 @@ import {
     arbitrum,
     base,
     sepolia,
+    hardhat,
 } from 'wagmi/chains';
 import {
     QueryClientProvider,
@@ -31,7 +32,7 @@ export function Web3Provider({ children }) {
     const [config] = React.useState(() => getDefaultConfig({
         appName: 'EscrowX',
         projectId: projectId,
-        chains: [mainnet, polygon, optimism, arbitrum, base, sepolia],
+        chains: [hardhat, sepolia],
         ssr: true,
     }));
 
