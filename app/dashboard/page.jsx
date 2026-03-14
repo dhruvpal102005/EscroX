@@ -6,9 +6,9 @@ import Navbar from '@/components/Navbar';
 import Card from '@/components/Card';
 import AuthGuard from '@/components/AuthGuard';
 import { useAuth } from '@/context/AuthContext';
-import { getUserContracts, getFreelancerContracts } from '@/lib/firestore';
+import { getUserContracts, getFreelancerContracts, getReviewsForUser } from '@/lib/firestore';
 import { getStatusColor } from '@/lib/store';
-import { TrendingUp, Lock, CheckCircle, Clock, ArrowRight, Plus, Globe, AlertTriangle, Briefcase, Copy, Check, Wallet, Building2, Shield, Users, Search, Bell, ClipboardList } from 'lucide-react';
+import { TrendingUp, Lock, CheckCircle, Clock, ArrowRight, Plus, Globe, AlertTriangle, Briefcase, Copy, Check, Wallet, Building2, Shield, Users, Search, Bell, ClipboardList, Star } from 'lucide-react';
 
 export default function DashboardPage() {
     const { user, profile } = useAuth();
@@ -83,6 +83,22 @@ function ClientDashboard({ contracts, totalValue, totalLocked, totalReleased, pr
     // Progress calculation for donut
     const releasedPercentage = totalValue > 0 ? (totalReleased / totalValue) * 100 : 0;
     const lockedPercentage = totalValue > 0 ? (totalLocked / totalValue) * 100 : 0;
+
+    // Fetch the client's average rating
+    const [avgRating, setAvgRating] = useState(null);
+    const { user } = useAuth();
+    useEffect(() => {
+        if (user?.email) {
+            getReviewsForUser(user.email)
+                .then(reviews => {
+                    if (reviews.length > 0) {
+                        const avg = reviews.reduce((s, r) => s + (r.rating || 0), 0) / reviews.length;
+                        setAvgRating(avg.toFixed(1));
+                    }
+                })
+                .catch(() => { });
+        }
+    }, [user?.email]);
 
     return (
         <AuthGuard>
@@ -328,20 +344,30 @@ function ClientDashboard({ contracts, totalValue, totalLocked, totalReleased, pr
                                 {/* Profile Card */}
                                 <div className="rounded-[24px] p-8 flex flex-col items-center text-center shadow-md relative overflow-hidden"
                                     style={{ background: 'linear-gradient(135deg, #fcd34d 0%, #f5a623 100%)' }}>
-                                    {/* Decorative circle */}
                                     <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 rounded-full bg-white opacity-10"></div>
 
                                     <div className="w-24 h-24 rounded-full bg-slate-200 border-[6px] border-[#fbb32f] mb-4 overflow-hidden shrink-0 shadow-lg">
                                         <img src={`https://api.dicebear.com/7.x/notionists/svg?seed=${profile?.displayName || 'Client'}&backgroundColor=e2e8f0`} alt={profile?.displayName} className="w-full h-full object-cover" />
                                     </div>
-                                    <h2 className="text-2xl font-black text-white tracking-tight">{profile?.displayName || 'Master Gaming'}</h2>
-                                    <p className="text-sm font-medium text-orange-100 mt-1 mb-6 flex items-center justify-center">
+                                    <h2 className="text-2xl font-black text-white tracking-tight">{profile?.displayName || 'Client'}</h2>
+                                    <p className="text-sm font-medium text-orange-100 mt-1 mb-3 flex items-center justify-center">
                                         {profile?.country || 'Earth'}
                                     </p>
+                                    {avgRating && (
+                                        <div className="flex items-center justify-center gap-1.5 mb-4">
+                                            <Star size={14} fill="#fff" stroke="#fff" />
+                                            <span className="text-white font-black text-sm">{avgRating}</span>
+                                            <span className="text-white/60 text-xs font-medium">avg rating</span>
+                                        </div>
+                                    )}
 
                                     <button className="flex items-center gap-2 px-6 py-2.5 rounded-2xl text-sm font-bold border-2 border-white/60 text-white transition-all hover:bg-white/10 w-full justify-center shadow-sm">
-                                        <div className="w-3 h-3 text-orange-200"><TrendingUp size={12} /></div> Edit profile
+                                        <TrendingUp size={12} className="text-orange-200" /> Edit profile
                                     </button>
+                                    <Link href={`/profile/${encodeURIComponent(user?.email || '')}`}
+                                        className="mt-2 text-[10px] font-bold text-white/60 hover:text-white/90 transition-colors w-full text-center block">
+                                        View public profile →
+                                    </Link>
                                 </div>
 
                                 {/* Recent Activity */}
@@ -352,15 +378,12 @@ function ClientDashboard({ contracts, totalValue, totalLocked, totalReleased, pr
                                     </div>
 
                                     {(() => {
-                                        // Build a flat list of recent events from contracts + milestones
                                         const events = [];
                                         for (const c of contracts) {
-                                            // Contract created event
                                             if (c.createdAt) {
                                                 const d = c.createdAt?.toDate ? c.createdAt.toDate() : new Date(c.createdAt);
                                                 events.push({ type: 'created', date: d, contract: c });
                                             }
-                                            // Milestone events
                                             for (const m of (c.milestones || [])) {
                                                 if (m.status === 'Approved' && m.approvedAt) {
                                                     const d = m.approvedAt?.toDate ? m.approvedAt.toDate() : new Date(m.approvedAt);
@@ -374,7 +397,6 @@ function ClientDashboard({ contracts, totalValue, totalLocked, totalReleased, pr
                                                 }
                                             }
                                         }
-                                        // Sort newest first and take top 5
                                         events.sort((a, b) => b.date - a.date);
                                         const recent = events.slice(0, 5);
 
