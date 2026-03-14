@@ -14,7 +14,7 @@ import { getStatusColor, statusFlow } from '@/lib/store';
 import {
     Shield, CheckCircle, Upload, AlertTriangle,
     ArrowLeft, Lock, ExternalLink, User, ChevronRight, Wallet, PartyPopper, XCircle, IndianRupee,
-    Banknote, Send, X, BadgeCheck
+    Banknote, Send, X, BadgeCheck, Bot
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useWriteContract, useAccount, useSwitchChain, usePublicClient } from 'wagmi';
@@ -43,6 +43,9 @@ export default function ContractPage() {
     const [ifsc, setIfsc] = useState('');
     const [payoutLoading, setPayoutLoading] = useState(false);
     const [payoutSuccess, setPayoutSuccess] = useState(null);
+
+    // Submission confirmation state
+    const [confirmSubmit, setConfirmSubmit] = useState(null); // { milestoneId, evidenceUrl }
 
     // Real-time subscription
     useEffect(() => {
@@ -370,11 +373,47 @@ export default function ContractPage() {
                                             <input value={evidence[m.id] || ''} onChange={e => setEvidence(p => ({ ...p, [m.id]: e.target.value }))}
                                                 placeholder="Evidence URL (GitHub, Figma, Loom...)" className="input flex-1 py-2 text-xs" />
                                             <button disabled={!!actionLoading}
-                                                onClick={() => act(`sub-${m.id}`, () => submitMilestone(id, m.id, evidence[m.id] || 'https://example.com/proof', contract.freelancerName))}
+                                                onClick={() => {
+                                                    const url = evidence[m.id]?.trim();
+                                                    if (!url) { toast.error('Please enter an evidence URL'); return; }
+                                                    setConfirmSubmit({ milestoneId: m.id, evidenceUrl: url, milestoneTitle: m.title });
+                                                }}
                                                 className="btn-primary text-xs px-4 py-2 disabled:opacity-60"
                                                 style={{ background: '#f5a623' }}>
-                                                <Upload size={12} /> {actionLoading === `sub-${m.id}` ? '...' : 'Submit Work'}
+                                                <Upload size={12} /> Submit Work
                                             </button>
+                                        </div>
+                                    )}
+
+                                    {/* AI Summary Card — shown ONLY to client on submitted milestones */}
+                                    {m.status === 'Submitted' && m.aiSummary && isClient && (
+                                        <div className="mt-3 rounded-xl border p-4" style={{
+                                            borderColor: m.aiConfidence === 'high' ? '#86efac' : m.aiConfidence === 'medium' ? '#fde68a' : '#fca5a5',
+                                            background: m.aiConfidence === 'high' ? 'linear-gradient(135deg, #f0fdf4 0%, #fff 100%)' : m.aiConfidence === 'medium' ? 'linear-gradient(135deg, #fffbeb 0%, #fff 100%)' : 'linear-gradient(135deg, #fef2f2 0%, #fff 100%)'
+                                        }}>
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{
+                                                    background: m.aiConfidence === 'high' ? '#10b981' : m.aiConfidence === 'medium' ? '#f59e0b' : '#ef4444'
+                                                }}>
+                                                    <Bot size={12} className="text-white" />
+                                                </div>
+                                                <span className="text-xs font-bold text-slate-700">AI Verification</span>
+                                                <span className={`ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                                    m.aiConfidence === 'high' ? 'bg-green-100 text-green-700' : m.aiConfidence === 'medium' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
+                                                }`}>
+                                                    {m.aiConfidence === 'high' ? '✓ High Confidence' : m.aiConfidence === 'medium' ? '⚠ Medium' : '⚠ Low'}
+                                                </span>
+                                            </div>
+                                            <p className="text-xs text-slate-600 leading-relaxed">{m.aiSummary}</p>
+                                            {m.aiFlags && m.aiFlags.length > 0 && (
+                                                <div className="flex flex-wrap gap-1.5 mt-2">
+                                                    {m.aiFlags.map((flag, i) => (
+                                                        <span key={i} className="text-[10px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-medium">
+                                                            ⚠ {flag}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            )}
                                         </div>
                                     )}
 
@@ -402,6 +441,66 @@ export default function ContractPage() {
                                     )}
                                 </Card>
                             ))}
+
+                            {/* Simple Confirmation Modal — Freelancer */}
+                            {confirmSubmit && (
+                                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+                                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-100">
+                                        <div className="p-5 border-b border-slate-100" style={{ background: 'linear-gradient(to right, #fff8ec, #fff)' }}>
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #f5a623, #e09000)' }}>
+                                                    <Upload size={20} className="text-white" />
+                                                </div>
+                                                <div>
+                                                    <h3 className="font-bold text-slate-900">Confirm Submission</h3>
+                                                    <p className="text-[11px] text-slate-400">Review before submitting to the client</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="p-6">
+                                            <p className="text-sm text-slate-600 mb-2">You are about to submit work for:</p>
+                                            <div className="bg-slate-50 rounded-xl p-4 mb-4 border border-slate-100">
+                                                <p className="text-sm font-bold text-slate-900">{confirmSubmit.milestoneTitle}</p>
+                                                <p className="text-xs text-slate-400 mt-1.5 truncate">🔗 {confirmSubmit.evidenceUrl}</p>
+                                            </div>
+                                            <p className="text-xs text-slate-500 mb-5">Are you sure you want to submit this link? The client will be notified and our AI will verify the submission.</p>
+                                            <div className="flex gap-3">
+                                                <button
+                                                    onClick={() => setConfirmSubmit(null)}
+                                                    className="btn-ghost flex-1 justify-center text-sm">
+                                                    Cancel
+                                                </button>
+                                                <button
+                                                    disabled={!!actionLoading}
+                                                    onClick={async () => {
+                                                        const { milestoneId, evidenceUrl } = confirmSubmit;
+                                                        setConfirmSubmit(null);
+                                                        // Submit immediately, AI runs in background
+                                                        let aiResult = null;
+                                                        try {
+                                                            const res = await fetch('/api/verify-submission', {
+                                                                method: 'POST',
+                                                                headers: { 'Content-Type': 'application/json' },
+                                                                body: JSON.stringify({ evidenceUrl, milestoneTitle: confirmSubmit.milestoneTitle, contractTitle: contract.title }),
+                                                            });
+                                                            aiResult = await res.json();
+                                                        } catch (err) {
+                                                            console.error('AI verify error (non-blocking):', err);
+                                                        }
+                                                        act(`sub-${milestoneId}`, () => submitMilestone(id, milestoneId, evidenceUrl, contract.freelancerName, aiResult));
+                                                    }}
+                                                    className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-60 transition-all"
+                                                    style={{ background: 'linear-gradient(135deg, #f5a623, #e09000)' }}>
+                                                    {actionLoading ? (
+                                                        <><div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" /> Submitting...</>
+                                                    ) : (
+                                                        <><CheckCircle size={14} /> Yes, Submit</>)}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* Right Panel */}
