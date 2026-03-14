@@ -8,12 +8,12 @@ import { useAuth } from '@/context/AuthContext';
 import {
     subscribeToContract, submitMilestone, approveMilestone,
     rejectMilestone, fundContract, raiseDispute,
-    acceptContract, rejectContract
+    acceptContract, rejectContract, submitReview, getContractReviews
 } from '@/lib/firestore';
 import { getStatusColor, statusFlow } from '@/lib/store';
 import {
     Shield, CheckCircle, Upload, AlertTriangle,
-    ArrowLeft, Lock, ExternalLink, User, ChevronRight, Wallet, PartyPopper, XCircle, IndianRupee
+    ArrowLeft, Lock, ExternalLink, User, ChevronRight, Wallet, PartyPopper, XCircle, IndianRupee, Star
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useWriteContract, useAccount, useSwitchChain, usePublicClient } from 'wagmi';
@@ -33,6 +33,11 @@ export default function ContractPage() {
     const [contract, setContract] = useState(null);
     const [loading, setLoading] = useState(true);
     const [evidence, setEvidence] = useState({});
+    const [reviews, setReviews] = useState({});
+    const [myRating, setMyRating] = useState(0);
+    const [hoverRating, setHoverRating] = useState(0);
+    const [reviewComment, setReviewComment] = useState('');
+    const [reviewSubmitting, setReviewSubmitting] = useState(false);
     const [disputeModal, setDisputeModal] = useState(false);
     const [actionLoading, setActionLoading] = useState('');
 
@@ -46,6 +51,12 @@ export default function ContractPage() {
         return () => unsub();
     }, [id]);
 
+    // Load existing reviews for this contract
+    useEffect(() => {
+        if (!id) return;
+        getContractReviews(id).then(setReviews).catch(() => { });
+    }, [id]);
+
     const [ethRates, setEthRates] = useState({});
     const [showLocal, setShowLocal] = useState(false);
 
@@ -54,7 +65,7 @@ export default function ContractPage() {
             const res = await fetch('https://api.coinbase.com/v2/exchange-rates?currency=ETH');
             const data = await res.json();
             const rates = data.data.rates;
-            
+
             setEthRates({
                 USD: parseFloat(rates.USD),
                 EUR: parseFloat(rates.EUR),
@@ -65,13 +76,13 @@ export default function ContractPage() {
         } catch (err) {
             console.error("Failed to fetch ETH exchange rates:", err);
             // Reasonable fallbacks if Coinbase API fails
-            setEthRates({ USD: 2500, EUR: 2300, GBP: 1900, INR: 210000, USDC: 2500 }); 
+            setEthRates({ USD: 2500, EUR: 2300, GBP: 1900, INR: 210000, USDC: 2500 });
         }
     };
 
     useEffect(() => {
         fetchRates();
-        const interval = setInterval(fetchRates, 60000); 
+        const interval = setInterval(fetchRates, 60000);
         return () => clearInterval(interval);
     }, []);
 
@@ -95,14 +106,14 @@ export default function ContractPage() {
     const isFreelancer = user?.email === contract.freelancerEmail;
     const totalReleased = (contract.milestones || []).filter(m => m.status === 'Approved').reduce((s, m) => s + m.amount, 0);
     const totalLocked = contract.totalValue - totalReleased;
-    
+
     // Determine the exchange rate based on the contract's stored currency
     const contractCurrency = contract.currency || 'USD';
     const currentRate = ethRates[contractCurrency] || 0;
-    
+
     // Estimate ETH based on the dynamic total Value
-    const ethEquivalent = currentRate > 0 ? (contract.totalValue / currentRate) : 0; 
-    
+    const ethEquivalent = currentRate > 0 ? (contract.totalValue / currentRate) : 0;
+
     // Handle the optional UI toggle to INR (if the user wants to see their local currency)
     const inrValue = ethRates.INR ? (ethEquivalent * ethRates.INR) : 0;
 
@@ -117,7 +128,7 @@ export default function ContractPage() {
                 const mId = key.split('-')[1];
                 const milestone = contract.milestones.find(m => m.id === mId);
                 const mIdx = milestone.order;
-                
+
                 if (contract.onChainId === undefined || contract.onChainId === null) {
                     throw new Error('On-chain Project ID not found. This contract may not have been initialized correctly.');
                 }
@@ -137,10 +148,10 @@ export default function ContractPage() {
                     functionName: 'approveMilestone',
                     args: [BigInt(contract.onChainId), BigInt(mIdx)],
                 });
-                
+
                 toast.loading('Mining release transaction...', { id: 'tx' });
                 const receipt = await publicClient.waitForTransactionReceipt({ hash });
-                
+
                 if (receipt.status === 'reverted') {
                     throw new Error('Transaction was reverted on-chain. Check that your wallet is the one that funded this contract.');
                 }
@@ -168,6 +179,33 @@ export default function ContractPage() {
         }
     };
 
+    const handleSubmitReview = async () => {
+        if (!myRating) return toast.error('Please select a star rating.');
+        setReviewSubmitting(true);
+        try {
+            const reviewerRole = isClient ? 'client' : 'freelancer';
+            const revieweeEmail = isClient ? contract.freelancerEmail : contract.clientEmail;
+            const revieweeName = isClient ? contract.freelancerName : contract.clientName;
+            const reviewerName = isClient ? contract.clientName : contract.freelancerName;
+            await submitReview(id, reviewerRole, {
+                rating: myRating,
+                comment: reviewComment,
+                reviewerName,
+                revieweeEmail,
+                revieweeName,
+                contractTitle: contract.title,
+            });
+            toast.success('Review submitted!');
+            // Refresh reviews
+            const updated = await getContractReviews(id);
+            setReviews(updated);
+        } catch (err) {
+            toast.error(err.message || 'Failed to submit review.');
+        } finally {
+            setReviewSubmitting(false);
+        }
+    };
+
     return (
         <AuthGuard>
             <Navbar />
@@ -188,11 +226,11 @@ export default function ContractPage() {
                                         🔗 {contract.txHash.slice(0, 16)}…
                                     </span>
                                 )}
-                            {contract.paymentMethod === 'razorpay' && (
-                                <span className="flex items-center gap-1 text-[10px] font-bold text-white bg-green-500 px-2 py-0.5 rounded-full">
-                                    <IndianRupee size={9} /> Fiat Funded
-                                </span>
-                            )}
+                                {contract.paymentMethod === 'razorpay' && (
+                                    <span className="flex items-center gap-1 text-[10px] font-bold text-white bg-green-500 px-2 py-0.5 rounded-full">
+                                        <IndianRupee size={9} /> Fiat Funded
+                                    </span>
+                                )}
                             </div>
                             <h1 className="text-2xl font-black text-slate-900">{contract.title}</h1>
                             <div className="flex flex-wrap items-center gap-2 mt-2 text-sm">
@@ -423,6 +461,106 @@ export default function ContractPage() {
                         </div>
                     </div>
                 </div>
+
+                {/* ── Review Section — only shown when contract is Completed ── */}
+                {contract.status === 'Completed' && (isClient || isFreelancer) && (() => {
+                    const myRole = isClient ? 'client' : 'freelancer';
+                    const otherRole = isClient ? 'freelancer' : 'client';
+                    const alreadyReviewed = isClient ? contract.clientReviewed : contract.freelancerReviewed;
+                    const otherReview = reviews[otherRole];
+                    const renderStars = (count, interactive = false) => (
+                        <div className="flex gap-1">
+                            {[1, 2, 3, 4, 5].map(n => (
+                                <button key={n}
+                                    type="button"
+                                    disabled={!interactive}
+                                    onClick={() => interactive && setMyRating(n)}
+                                    onMouseEnter={() => interactive && setHoverRating(n)}
+                                    onMouseLeave={() => interactive && setHoverRating(0)}
+                                    className={interactive ? 'cursor-pointer' : 'cursor-default'}
+                                >
+                                    <Star size={20}
+                                        fill={(interactive ? (hoverRating || myRating) >= n : count >= n) ? '#f5a623' : 'none'}
+                                        stroke={(interactive ? (hoverRating || myRating) >= n : count >= n) ? '#f5a623' : '#cbd5e1'}
+                                    />
+                                </button>
+                            ))}
+                        </div>
+                    );
+
+                    return (
+                        <div className="max-w-6xl mx-auto px-6 md:px-12 pb-12">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Leave your review */}
+                                <Card className="p-7">
+                                    <div className="flex items-center gap-2 mb-5">
+                                        <Star size={18} fill="#f5a623" stroke="#f5a623" />
+                                        <h3 className="text-lg font-black text-slate-900">
+                                            {alreadyReviewed ? 'Your Review' : `Rate ${isClient ? contract.freelancerName : contract.clientName}`}
+                                        </h3>
+                                    </div>
+                                    {alreadyReviewed ? (
+                                        <>
+                                            {renderStars(reviews[myRole]?.rating || 0)}
+                                            {reviews[myRole]?.comment && (
+                                                <p className="text-sm text-slate-600 mt-3 italic">"{reviews[myRole].comment}"</p>
+                                            )}
+                                            <p className="text-xs text-emerald-600 font-bold mt-3">✓ Review submitted</p>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <p className="text-sm text-slate-500 mb-4">
+                                                How was your experience with <span className="font-semibold text-slate-800">{isClient ? contract.freelancerName : contract.clientName}</span>?
+                                            </p>
+                                            {renderStars(myRating, true)}
+                                            <textarea
+                                                value={reviewComment}
+                                                onChange={e => setReviewComment(e.target.value)}
+                                                placeholder="Share your experience (optional)..."
+                                                rows={3}
+                                                className="w-full mt-4 px-4 py-3 rounded-xl border border-slate-200 text-sm text-slate-700 focus:ring-2 focus:ring-[#f5a623] outline-none resize-none"
+                                            />
+                                            <button
+                                                onClick={handleSubmitReview}
+                                                disabled={!myRating || reviewSubmitting}
+                                                className="mt-4 btn-primary w-full justify-center rounded-xl py-2.5 disabled:opacity-50"
+                                            >
+                                                {reviewSubmitting ? 'Submitting...' : 'Submit Review'}
+                                            </button>
+                                        </>
+                                    )}
+                                </Card>
+
+                                {/* Other party's review */}
+                                <Card className="p-7">
+                                    <div className="flex items-center gap-2 mb-5">
+                                        <Star size={18} fill="#f5a623" stroke="#f5a623" />
+                                        <h3 className="text-lg font-black text-slate-900">
+                                            {isClient ? contract.freelancerName : contract.clientName}'s Review
+                                        </h3>
+                                    </div>
+                                    {otherReview ? (
+                                        <>
+                                            {renderStars(otherReview.rating)}
+                                            {otherReview.comment && (
+                                                <p className="text-sm text-slate-600 mt-3 italic">"{otherReview.comment}"</p>
+                                            )}
+                                            <p className="text-xs text-slate-400 mt-3">
+                                                {otherReview.createdAt?.toDate ? otherReview.createdAt.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}
+                                            </p>
+                                        </>
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center h-full py-8 text-center">
+                                            <Star size={32} stroke="#cbd5e1" fill="none" />
+                                            <p className="text-sm text-slate-400 font-medium mt-3">No review yet</p>
+                                            <p className="text-xs text-slate-300 mt-1">They haven't left a review yet.</p>
+                                        </div>
+                                    )}
+                                </Card>
+                            </div>
+                        </div>
+                    );
+                })()}
 
                 {/* Dispute Modal */}
                 {disputeModal && (
