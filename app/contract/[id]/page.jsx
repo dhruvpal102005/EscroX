@@ -16,7 +16,7 @@ import {
     ArrowLeft, Lock, ExternalLink, User, ChevronRight, Wallet, PartyPopper, XCircle
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { useWriteContract, useAccount, useSwitchChain } from 'wagmi';
+import { useWriteContract, useAccount, useSwitchChain, usePublicClient } from 'wagmi';
 import { localhost } from 'wagmi/chains';
 import { ESCROW_ADDRESS, ESCROW_ABI } from '@/lib/contracts';
 
@@ -28,6 +28,7 @@ export default function ContractPage() {
     const { isConnected, address: walletAddress, chainId } = useAccount();
     const { writeContractAsync } = useWriteContract();
     const { switchChainAsync } = useSwitchChain();
+    const publicClient = usePublicClient();
     const { user } = useAuth();
     const [contract, setContract] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -96,7 +97,13 @@ export default function ContractPage() {
                 if (!isConnected) throw new Error('Connect your wallet to release funds');
                 const mId = key.split('-')[1];
                 const milestone = contract.milestones.find(m => m.id === mId);
-                const mIdx = milestone.order; // Assuming order is the index
+                const mIdx = milestone.order;
+                
+                if (contract.onChainId === undefined || contract.onChainId === null) {
+                    throw new Error('On-chain Project ID not found. This contract may not have been initialized correctly.');
+                }
+
+                console.log(`Approving milestone on-chain. Project: ${contract.onChainId}, Milestone Index: ${mIdx}`);
 
                 if (chainId !== localhost.id) {
                     toast.loading('Switching to Local Testnet...', { id: 'tx' });
@@ -109,17 +116,28 @@ export default function ContractPage() {
                     address: ESCROW_ADDRESS,
                     abi: ESCROW_ABI,
                     functionName: 'approveMilestone',
-                    args: [BigInt(contract.onChainId ?? 0), BigInt(mIdx)],
+                    args: [BigInt(contract.onChainId), BigInt(mIdx)],
                 });
+                
                 toast.loading('Mining release transaction...', { id: 'tx' });
+                const receipt = await publicClient.waitForTransactionReceipt({ hash });
+                
+                if (receipt.status === 'reverted') {
+                    throw new Error('Transaction was reverted on-chain. Check that your wallet is the one that funded this contract.');
+                }
+
+                console.log('✅ Funds released on-chain! TxHash:', hash);
+                // Update the fn to include the txHash for the audit log
+                const originalFn = fn;
+                fn = () => originalFn(hash);
             }
 
             await fn();
 
             if (key === 'fund') toast.success('Funds locked safely in Escrow Vault', { id: 'tx' });
-            else if (key.startsWith('sub-')) toast.success('Milestone submitted for review');
-            else if (key.startsWith('app-')) toast.success('Milestone approved & funds released!', { id: 'tx' });
-            else if (key.startsWith('rej-')) toast.success('Milestone rejected');
+            else if (key.startsWith('sub-')) toast.success('Milestone submitted for review! The client has been notified.');
+            else if (key.startsWith('app-')) toast.success('🎉 Milestone approved! Funds transferred to freelancer on-chain!', { id: 'tx' });
+            else if (key.startsWith('rej-')) toast.success('Milestone rejected — freelancer must resubmit.');
             else if (key === 'accept') toast.success('Contract offer accepted! It is now active.');
             else if (key === 'decline') toast.success('Contract offer declined.');
             else if (key === 'dispute') toast.success('Dispute raised. Platform notified.');

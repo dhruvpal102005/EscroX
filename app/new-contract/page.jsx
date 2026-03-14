@@ -9,7 +9,7 @@ import { createContract } from '@/lib/firestore';
 import { Plus, Trash2, ArrowLeft, Shield, Check, AlertCircle, Sparkles, X, Wallet } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useWriteContract, useAccount, useSwitchChain, usePublicClient } from 'wagmi';
-import { parseEther, decodeEventLog } from 'viem';
+import { parseEther } from 'viem';
 import { localhost } from 'wagmi/chains';
 import { ESCROW_ADDRESS, ESCROW_ABI } from '@/lib/contracts';
 
@@ -123,14 +123,24 @@ export default function NewContractPage() {
                 await switchChainAsync({ chainId: localhost.id });
             }
 
-            // 1. Prepare Smart Contract Data
+            // 1. Read the NEXT project ID from the contract BEFORE we create
+            //    This is guaranteed to be the ID we get assigned
+            const nextId = await publicClient.readContract({
+                address: ESCROW_ADDRESS,
+                abi: ESCROW_ABI,
+                functionName: 'nextProjectId',
+            });
+            const onChainProjectId = Number(nextId);
+            console.log('Creating project — will be assigned on-chain ID:', onChainProjectId);
+
+            // 2. Prepare Smart Contract Data
             const msTitles = form.milestones.map(m => m.title || 'Untitled Milestone');
             // Convert USD amount to cents for the contract (which expects uint256 with 2 decimals)
             const msAmountsUSD = form.milestones.map(m => BigInt(Math.round(parseFloat(m.amount) * 100)));
             
             toast.loading('Confirm deposit in your wallet...', { id: 'tx' });
 
-            // 2. Trigger Blockchain Transaction
+            // 3. Trigger Blockchain Transaction
             const hash = await writeContractAsync({
                 chainId: localhost.id,
                 address: ESCROW_ADDRESS,
@@ -140,27 +150,17 @@ export default function NewContractPage() {
                 value: totalWei,
             });
 
-
-            toast.loading('Mining transaction on-chain...', { id: 'tx' });
-
+            toast.loading('Mining transaction on-chain... please wait', { id: 'tx' });
+            // Wait for confirmation - this ensures the TX actually succeeded  
             const receipt = await publicClient.waitForTransactionReceipt({ hash });
             
-            let onChainProjectId = 0;
-            for (const log of receipt.logs) {
-                try {
-                    const decoded = decodeEventLog({
-                        abi: ESCROW_ABI,
-                        data: log.data,
-                        topics: log.topics,
-                    });
-                    if (decoded.eventName === 'ProjectCreated') {
-                        onChainProjectId = Number(decoded.args.projectId);
-                        break;
-                    }
-                } catch (e) { } // Ignore other logs
+            if (receipt.status === 'reverted') {
+                throw new Error('Transaction was reverted. Please check your wallet balance and freelancer address.');
             }
 
-            // 3. Prepare Firestore Payload
+            console.log('✅ Transaction confirmed on-chain. Project ID:', onChainProjectId, 'TxHash:', hash);
+
+            // 4. Save to Firestore with the correct on-chain ID
             const payload = {
                 clientUid: user.uid,
                 clientName: form.clientName || '',
@@ -182,19 +182,19 @@ export default function NewContractPage() {
                     title: m.title || `Milestone ${i + 1}`,
                     amount: parseFloat(m.amount) || 0,
                     order: i,
-                    status: 'Locked'
+                    status: 'Pending'
                 })),
             };
 
-            const id = await createContract(payload);
+            const docId = await createContract(payload);
 
-            toast.success('Escrow initialized on-chain!', { id: 'tx' });
+            toast.success('🎉 Escrow initialized on-chain! Funds locked.', { id: 'tx' });
             setSubmitted(true);
-            setTimeout(() => router.push(`/contract/${id}`), 1500);
+            setTimeout(() => router.push(`/contract/${docId}`), 1500);
         } catch (err) {
             console.error("Contract creation error:", err);
             toast.error(err.shortMessage || err.message || 'Failed to create contract', { id: 'tx' });
-            setError(err.message || 'Failed to create contract.');
+            setError(err.shortMessage || err.message || 'Failed to create contract.');
         } finally {
             setLoading(false);
         }
