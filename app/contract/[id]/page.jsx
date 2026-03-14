@@ -58,6 +58,18 @@ export default function ContractPage() {
     const [payoutLoading, setPayoutLoading] = useState(false);
     const [payoutSuccess, setPayoutSuccess] = useState(null);
 
+    const sendNotification = async (to, subject, type, data) => {
+        try {
+            await fetch('/api/send-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ to, subject, type, data }),
+            });
+        } catch (err) {
+            console.error('Failed to send email notification:', err);
+        }
+    };
+
     // Real-time subscription
     useEffect(() => {
         if (!id) return;
@@ -182,12 +194,53 @@ export default function ContractPage() {
             await fn();
 
             if (key === 'fund') toast.success('Funds locked safely in Escrow Vault', { id: 'tx' });
-            else if (key.startsWith('sub-')) toast.success('Milestone submitted for review! The client has been notified.');
-            else if (key.startsWith('app-')) toast.success('🎉 Milestone approved! Funds transferred to freelancer!', { id: 'tx' });
-            else if (key.startsWith('rej-')) toast.success('Milestone rejected — freelancer must resubmit.');
-            else if (key === 'accept') toast.success('Contract offer accepted! It is now active.');
+            else if (key.startsWith('sub-')) {
+                toast.success('Milestone submitted for review! The client has been notified.');
+                const mId = key.split('-')[1];
+                const milestone = contract.milestones.find(m => m.id === mId);
+                sendNotification(contract.clientEmail, 'Milestone Ready for Review 📬', 'milestone_submitted', {
+                    clientName: contract.clientName,
+                    id: contract.id,
+                    title: milestone.title,
+                    order: milestone.order
+                });
+            }
+            else if (key.startsWith('app-')) {
+                toast.success('🎉 Milestone approved! Funds transferred to freelancer on-chain!', { id: 'tx' });
+                const mId = key.split('-')[1];
+                const milestone = contract.milestones.find(m => m.id === mId);
+                sendNotification(contract.freelancerEmail, 'Funds Released! 🎉', 'milestone_approved', {
+                    freelancerName: contract.freelancerName,
+                    clientName: contract.clientName,
+                    id: contract.id,
+                    title: milestone.title,
+                    amount: milestone.amount
+                });
+            }
+            else if (key.startsWith('rej-')) {
+                toast.success('Milestone rejected — freelancer must resubmit.');
+                const mId = key.split('-')[1];
+                const milestone = contract.milestones.find(m => m.id === mId);
+                sendNotification(contract.freelancerEmail, 'Milestone Needs Revision ⚠️', 'milestone_rejected', {
+                    freelancerName: contract.freelancerName,
+                    clientName: contract.clientName,
+                    id: contract.id,
+                    title: milestone.title
+                });
+            }
+            else if (key === 'accept') {
+                toast.success('Contract offer accepted! It is now active.');
+                sendNotification(contract.clientEmail, 'Contract Accepted! ✅', 'contract_accepted', {
+                    clientName: contract.clientName,
+                    id: contract.id,
+                    title: contract.title
+                });
+            }
             else if (key === 'decline') toast.success('Contract offer declined.');
-            else if (key === 'dispute') toast.success('Dispute raised. Platform notified.');
+            else if (key === 'dispute') {
+                toast.success('Dispute raised. Platform notified.');
+                // Optional: add dispute email
+            }
         } catch (err) {
             console.error(err);
             toast.error(err.shortMessage || err.message || 'Action failed. Please try again.', { id: 'tx' });
