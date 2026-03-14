@@ -86,14 +86,14 @@ export async function POST(req) {
         }
 
         const { data: emailData, error } = await resend.emails.send({
-            from: 'EscroX <notifications@resend.dev>', // Use onboarding domain for testing
+            from: 'onboarding@resend.dev', 
             to: [to],
             subject: subject,
             html: html,
         });
 
         if (error) {
-            console.error('Resend Error:', error);
+            console.error('Resend API Error:', error);
             return NextResponse.json({ error }, { status: 500 });
         }
 
