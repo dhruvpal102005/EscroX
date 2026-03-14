@@ -6,7 +6,7 @@ import Card from '@/components/Card';
 import AuthGuard from '@/components/AuthGuard';
 import { useAuth } from '@/context/AuthContext';
 import { createContract } from '@/lib/firestore';
-import { Plus, Trash2, ArrowLeft, Shield, Check, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, ArrowLeft, Shield, Check, AlertCircle, Sparkles, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function NewContractPage() {
@@ -22,6 +22,12 @@ export default function NewContractPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
+    // AI Generation State
+    const [aiModal, setAiModal] = useState(false);
+    const [aiPrompt, setAiPrompt] = useState('');
+    const [aiGenerating, setAiGenerating] = useState(false);
+    const [aiError, setAiError] = useState('');
+
     const addMs = () => setForm(f => ({ ...f, milestones: [...f.milestones, { title: '', amount: '', order: f.milestones.length }] }));
     const removeMs = (i) => setForm(f => ({ ...f, milestones: f.milestones.filter((_, idx) => idx !== i) }));
     const updateMs = (i, key, value) => setForm(f => {
@@ -30,33 +36,73 @@ export default function NewContractPage() {
 
     const totalValue = form.milestones.reduce((s, m) => s + (parseFloat(m.amount) || 0), 0);
 
+    const handleGenerate = async () => {
+        if (!aiPrompt.trim()) return;
+        setAiGenerating(true);
+        setAiError('');
+        try {
+            const res = await fetch('/api/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt: aiPrompt })
+            });
+            const data = await res.json();
+
+            if (!res.ok) throw new Error(data.error || 'AI generation failed');
+
+            // Merge AI generated fields into the form
+            setForm(f => ({
+                ...f,
+                title: data.title || f.title,
+                deadline: data.deadline || f.deadline,
+                currency: data.currency || f.currency,
+                milestones: data.milestones?.length ? data.milestones.map((m, i) => ({
+                    title: m.title, amount: m.amount || 0, order: i
+                })) : f.milestones
+            }));
+
+            toast('Contract magically drafted! ✨', { icon: '🤖' });
+            setAiModal(false);
+            setAiPrompt('');
+        } catch (err) {
+            setAiError(err.message);
+        } finally {
+            setAiGenerating(false);
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!user) return;
         try {
             setError(''); setLoading(true);
-            const id = await createContract({
+            const payload = {
                 clientUid: user.uid,
-                clientName: form.clientName,
-                clientEmail: user.email,
-                clientCountry: form.clientCountry,
-                freelancerName: form.freelancerName,
-                freelancerEmail: form.freelancerEmail,
-                freelancerCountry: form.freelancerCountry,
-                title: form.title,
-                totalValue,
-                currency: form.currency,
-                deadline: form.deadline,
+                clientName: form.clientName || '',
+                clientEmail: user.email || '',
+                clientCountry: form.clientCountry || '',
+                freelancerName: form.freelancerName || '',
+                freelancerEmail: form.freelancerEmail || '',
+                freelancerCountry: form.freelancerCountry || '',
+                title: form.title || '',
+                totalValue: totalValue || 0,
+                currency: form.currency || 'USD',
+                deadline: form.deadline || '',
                 milestones: form.milestones.map((m, i) => ({
-                    title: m.title, amount: parseFloat(m.amount), order: i
+                    title: m.title || `Milestone ${i + 1}`,
+                    amount: parseFloat(m.amount) || 0,
+                    order: i
                 })),
-            });
+            };
+            console.log("Submitting contract:", payload);
+            const id = await createContract(payload);
             toast.success('Escrow contract initialized successfully!');
             setSubmitted(true);
             setTimeout(() => router.push(`/contract/${id}`), 1500);
         } catch (err) {
+            console.error("Contract creation error:", err);
             toast.error('Failed to create contract');
-            setError('Failed to create contract. Please check your Firebase config.');
+            setError(err.message || 'Failed to create contract. Please check your Firebase config.');
         } finally { setLoading(false); }
     };
 
@@ -78,15 +124,24 @@ export default function NewContractPage() {
     return (
         <AuthGuard>
             <Navbar />
-            <div className="min-h-screen bg-surface pt-16">
+            <div className="min-h-screen bg-surface pt-16 relative">
                 <div className="max-w-2xl mx-auto px-6 py-10">
                     <button onClick={() => router.push('/dashboard')}
                         className="flex items-center gap-1.5 text-slate-400 hover:text-slate-700 mb-6 text-sm font-medium transition-colors">
                         <ArrowLeft size={15} /> Back to Dashboard
                     </button>
 
-                    <h1 className="text-2xl font-black text-slate-900 mb-1">New Escrow Contract</h1>
-                    <p className="text-slate-400 text-sm mb-8">Define parties, milestones, and timeline. Funds lock until each milestone is verified.</p>
+                    <div className="flex items-start justify-between mb-8">
+                        <div>
+                            <h1 className="text-2xl font-black text-slate-900 mb-1">New Escrow Contract</h1>
+                            <p className="text-slate-400 text-sm">Define parties, milestones, and timeline.</p>
+                        </div>
+                        <button onClick={() => setAiModal(true)} type="button"
+                            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white transition-transform hover:scale-105 shadow-md shadow-fuchsia-200"
+                            style={{ background: 'linear-gradient(135deg, #a855f7 0%, #ec4899 100%)' }}>
+                            <Sparkles size={16} /> Draft with AI
+                        </button>
+                    </div>
 
                     {error && (
                         <div className="flex items-center gap-2 p-3 rounded-xl mb-5 text-sm text-red-600 bg-red-50 border border-red-200">
@@ -180,6 +235,67 @@ export default function NewContractPage() {
                         </button>
                     </form>
                 </div>
+
+                {/* AI Draft Modal */}
+                {aiModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-100">
+                            <div className="p-5 border-b border-slate-100 flex items-center justify-between"
+                                style={{ background: 'linear-gradient(to right, #fdf4ff, #fff)' }}>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-8 h-8 rounded-full flex items-center justify-center"
+                                        style={{ background: 'linear-gradient(135deg, #a855f7 0%, #ec4899 100%)' }}>
+                                        <Sparkles size={14} className="text-white" />
+                                    </div>
+                                    <h3 className="font-bold text-slate-900">AI Contract Drafter</h3>
+                                </div>
+                                <button onClick={() => !aiGenerating && setAiModal(false)} className="text-slate-400 hover:text-slate-600">
+                                    <X size={20} />
+                                </button>
+                            </div>
+
+                            <div className="p-6">
+                                <p className="text-sm text-slate-500 mb-4">
+                                    Describe your project timeline, total budget, and how you want to break down the milestones. The AI will structure it automatically.
+                                </p>
+
+                                {aiError && (
+                                    <div className="mb-4 p-3 rounded-xl text-xs text-red-600 bg-red-50 border border-red-100 flex items-center gap-2">
+                                        <AlertCircle size={14} /> {aiError}
+                                    </div>
+                                )}
+
+                                <textarea
+                                    className="w-full h-32 p-4 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-fuchsia-500 focus:border-transparent resize-none"
+                                    placeholder="e.g. I need a Shopify website built in 30 days for 1500 USD. First milestone is design for 500. Second is development for 1000."
+                                    value={aiPrompt}
+                                    onChange={e => setAiPrompt(e.target.value)}
+                                    disabled={aiGenerating}
+                                />
+
+                                <div className="mt-6 flex justify-end gap-3">
+                                    <button onClick={() => setAiModal(false)} disabled={aiGenerating} className="btn-ghost px-5 text-sm">
+                                        Cancel
+                                    </button>
+                                    <button onClick={handleGenerate} disabled={aiGenerating || !aiPrompt.trim()}
+                                        className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-opacity disabled:opacity-60"
+                                        style={{ background: 'linear-gradient(135deg, #a855f7 0%, #ec4899 100%)' }}>
+                                        {aiGenerating ? (
+                                            <>
+                                                <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                                                Drafting terms...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Sparkles size={16} /> Generate Contract
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </AuthGuard>
     );
