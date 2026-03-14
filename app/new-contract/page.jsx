@@ -3,17 +3,25 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Card from '@/components/Card';
-import { Plus, Trash2, ArrowLeft, Shield, Check } from 'lucide-react';
+import AuthGuard from '@/components/AuthGuard';
+import { useAuth } from '@/context/AuthContext';
+import { createContract } from '@/lib/firestore';
+import { Plus, Trash2, ArrowLeft, Shield, Check, AlertCircle } from 'lucide-react';
 
 export default function NewContractPage() {
+    const { user, profile } = useAuth();
     const router = useRouter();
     const [form, setForm] = useState({
-        title: '', clientName: '', clientCountry: '', freelancerName: '', freelancerCountry: '',
-        deadline: '', milestones: [{ title: '', amount: '' }]
+        title: '', clientName: '', clientCountry: '',
+        freelancerName: '', freelancerEmail: '', freelancerCountry: '',
+        deadline: '', currency: 'USD',
+        milestones: [{ title: '', amount: '', order: 0 }]
     });
     const [submitted, setSubmitted] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
 
-    const addMs = () => setForm(f => ({ ...f, milestones: [...f.milestones, { title: '', amount: '' }] }));
+    const addMs = () => setForm(f => ({ ...f, milestones: [...f.milestones, { title: '', amount: '', order: f.milestones.length }] }));
     const removeMs = (i) => setForm(f => ({ ...f, milestones: f.milestones.filter((_, idx) => idx !== i) }));
     const updateMs = (i, key, value) => setForm(f => {
         const ms = [...f.milestones]; ms[i] = { ...ms[i], [key]: value }; return { ...f, milestones: ms };
@@ -21,14 +29,36 @@ export default function NewContractPage() {
 
     const totalValue = form.milestones.reduce((s, m) => s + (parseFloat(m.amount) || 0), 0);
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        setSubmitted(true);
-        setTimeout(() => router.push('/dashboard'), 2000);
+        if (!user) return;
+        try {
+            setError(''); setLoading(true);
+            const id = await createContract({
+                clientUid: user.uid,
+                clientName: form.clientName,
+                clientEmail: user.email,
+                clientCountry: form.clientCountry,
+                freelancerName: form.freelancerName,
+                freelancerEmail: form.freelancerEmail,
+                freelancerCountry: form.freelancerCountry,
+                title: form.title,
+                totalValue,
+                currency: form.currency,
+                deadline: form.deadline,
+                milestones: form.milestones.map((m, i) => ({
+                    title: m.title, amount: parseFloat(m.amount), order: i
+                })),
+            });
+            setSubmitted(true);
+            setTimeout(() => router.push(`/contract/${id}`), 1500);
+        } catch (err) {
+            setError('Failed to create contract. Please check your Firebase config.');
+        } finally { setLoading(false); }
     };
 
     if (submitted) return (
-        <>
+        <AuthGuard>
             <Navbar />
             <div className="min-h-screen bg-surface pt-16 flex items-center justify-center">
                 <div className="text-center">
@@ -36,14 +66,14 @@ export default function NewContractPage() {
                         <Check size={36} className="text-green-500" />
                     </div>
                     <h2 className="text-2xl font-black text-slate-900 mb-2">Contract Initialized!</h2>
-                    <p className="text-slate-400">Redirecting to your dashboard...</p>
+                    <p className="text-slate-400">Redirecting to contract page...</p>
                 </div>
             </div>
-        </>
+        </AuthGuard>
     );
 
     return (
-        <>
+        <AuthGuard>
             <Navbar />
             <div className="min-h-screen bg-surface pt-16">
                 <div className="max-w-2xl mx-auto px-6 py-10">
@@ -53,9 +83,16 @@ export default function NewContractPage() {
                     </button>
 
                     <h1 className="text-2xl font-black text-slate-900 mb-1">New Escrow Contract</h1>
-                    <p className="text-slate-400 text-sm mb-8">Define parties, milestones, and timeline. Funds lock until each milestone is approved.</p>
+                    <p className="text-slate-400 text-sm mb-8">Define parties, milestones, and timeline. Funds lock until each milestone is verified.</p>
+
+                    {error && (
+                        <div className="flex items-center gap-2 p-3 rounded-xl mb-5 text-sm text-red-600 bg-red-50 border border-red-200">
+                            <AlertCircle size={15} /> {error}
+                        </div>
+                    )}
 
                     <form onSubmit={handleSubmit} className="space-y-6">
+                        {/* Contract details */}
                         <Card className="p-6">
                             <h2 className="font-bold text-slate-900 mb-4">Contract Details</h2>
                             <div className="space-y-4">
@@ -65,8 +102,11 @@ export default function NewContractPage() {
                                         value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
-                                    {[['Client Name', 'clientName', 'John Doe'], ['Client Country', 'clientCountry', '🇺🇸 USA'],
-                                    ['Freelancer Name', 'freelancerName', 'Jane Smith'], ['Freelancer Country', 'freelancerCountry', '🇮🇳 India']
+                                    {[
+                                        ['Client Name', 'clientName', 'John Doe'],
+                                        ['Client Country', 'clientCountry', '🇺🇸 USA'],
+                                        ['Freelancer Name', 'freelancerName', 'Jane Smith'],
+                                        ['Freelancer Country', 'freelancerCountry', '🇮🇳 India'],
                                     ].map(([label, key, placeholder]) => (
                                         <div key={key}>
                                             <label className="text-xs text-slate-500 font-semibold mb-1.5 block">{label}</label>
@@ -76,13 +116,27 @@ export default function NewContractPage() {
                                     ))}
                                 </div>
                                 <div>
-                                    <label className="text-xs text-slate-500 font-semibold mb-1.5 block">Deadline</label>
-                                    <input type="date" required className="input" value={form.deadline}
-                                        onChange={e => setForm(f => ({ ...f, deadline: e.target.value }))} />
+                                    <label className="text-xs text-slate-500 font-semibold mb-1.5 block">Freelancer Email</label>
+                                    <input type="email" required className="input" placeholder="freelancer@example.com" value={form.freelancerEmail}
+                                        onChange={e => setForm(f => ({ ...f, freelancerEmail: e.target.value }))} />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="text-xs text-slate-500 font-semibold mb-1.5 block">Deadline</label>
+                                        <input type="date" required className="input" value={form.deadline}
+                                            onChange={e => setForm(f => ({ ...f, deadline: e.target.value }))} />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs text-slate-500 font-semibold mb-1.5 block">Currency</label>
+                                        <select className="input" value={form.currency} onChange={e => setForm(f => ({ ...f, currency: e.target.value }))}>
+                                            {['USD', 'EUR', 'GBP', 'INR', 'USDC'].map(c => <option key={c}>{c}</option>)}
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
                         </Card>
 
+                        {/* Milestones */}
                         <Card className="p-6">
                             <div className="flex items-center justify-between mb-4">
                                 <h2 className="font-bold text-slate-900">Milestones</h2>
@@ -93,12 +147,12 @@ export default function NewContractPage() {
                             <div className="space-y-3">
                                 {form.milestones.map((m, i) => (
                                     <div key={i} className="flex items-center gap-3">
-                                        <div className="w-6 h-6 rounded-full shrink-0 flex items-center justify-center text-xs font-bold text-white"
+                                        <div className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-xs font-bold text-white"
                                             style={{ background: '#f5a623' }}>{i + 1}</div>
                                         <input required className="input flex-1 py-2" placeholder="Milestone title"
                                             value={m.title} onChange={e => updateMs(i, 'title', e.target.value)} />
                                         <div className="flex items-center gap-1 border border-slate-200 rounded-xl px-3 bg-slate-50">
-                                            <span className="text-slate-400 text-sm">$</span>
+                                            <span className="text-slate-400 text-sm">{form.currency === 'USDC' ? '₮' : '$'}</span>
                                             <input required type="number" min="1" className="w-24 py-2.5 bg-transparent text-sm text-slate-900 outline-none"
                                                 placeholder="0" value={m.amount} onChange={e => updateMs(i, 'amount', e.target.value)} />
                                         </div>
@@ -112,16 +166,18 @@ export default function NewContractPage() {
                             </div>
                             <div className="mt-5 pt-4 border-t border-slate-100 flex justify-between items-center">
                                 <span className="text-sm text-slate-400">Total Contract Value</span>
-                                <span className="text-2xl font-black text-slate-900">${totalValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                                <span className="text-2xl font-black text-slate-900">
+                                    {form.currency} {totalValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                </span>
                             </div>
                         </Card>
 
-                        <button type="submit" className="btn-primary w-full justify-center py-4 text-base">
-                            <Shield size={17} /> Initialize Escrow Contract
+                        <button type="submit" disabled={loading} className="btn-primary w-full justify-center py-4 text-base disabled:opacity-60">
+                            <Shield size={17} /> {loading ? 'Saving to Firestore...' : 'Initialize Escrow Contract'}
                         </button>
                     </form>
                 </div>
             </div>
-        </>
+        </AuthGuard>
     );
 }
