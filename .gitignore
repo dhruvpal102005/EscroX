@@ -30,3 +30,12 @@ yarn-error.log*
 # Misc
 *.pem
 .vercel
+
+# Hardhat
+cache/
+artifacts/
+src/artifacts/
+ignition/deployments/
+deploy_err.txt
+deploy_out.txt
+*.log
