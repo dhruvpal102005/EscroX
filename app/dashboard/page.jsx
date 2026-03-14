@@ -232,6 +232,7 @@ function ClientDashboard({ contracts, totalValue, totalLocked, totalReleased }) 
 // FREELANCER DASHBOARD (New Professional UI)
 // ==========================================
 function FreelancerDashboard({ contracts, totalValue, totalLocked, totalReleased, profile }) {
+    const router = useRouter();
     const firstName = (profile?.displayName || 'Freelancer').split(' ')[0];
 
     // Filter out contracts that haven't been accepted yet (Agreement) or are Rejected
