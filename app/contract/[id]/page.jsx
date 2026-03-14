@@ -14,7 +14,7 @@ import { getStatusColor, statusFlow } from '@/lib/store';
 import {
     Shield, CheckCircle, Upload, AlertTriangle,
     ArrowLeft, Lock, ExternalLink, User, ChevronRight, Wallet, PartyPopper, XCircle, IndianRupee,
-    Star, Banknote, Send, X, BadgeCheck, Bot, Download, MessageSquare, Info
+    Star, Banknote, Send, X, BadgeCheck, Bot, Download, MessageSquare, Info, PackageCheck, Truck, Wrench, RefreshCw
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useWriteContract, useAccount, useSwitchChain, usePublicClient } from 'wagmi';
@@ -58,6 +58,26 @@ export default function ContractPage() {
     const [payoutLoading, setPayoutLoading] = useState(false);
     const [payoutSuccess, setPayoutSuccess] = useState(null);
 
+    // Product tracking state (per milestone)
+    const [selectedCourier, setSelectedCourier] = useState({});  // milestoneId -> slug
+    const [trackingInput, setTrackingInput] = useState({});      // milestoneId -> trackingId string
+    const [shipmentData, setShipmentData] = useState({});        // milestoneId -> tracking result
+    const [trackingLoading, setTrackingLoading] = useState({});  // milestoneId -> bool
+
+    // Couriers list (slug + display)
+    const COURIERS = [
+        { slug: 'ekart',       label: 'Ekart',        flag: '🇮🇳' },
+        { slug: 'india-post',  label: 'India Post',   flag: '🇮🇳' },
+        { slug: 'delhivery',   label: 'Delhivery',    flag: '🇮🇳' },
+        { slug: 'bluedart',    label: 'BlueDart',     flag: '🇮🇳' },
+        { slug: 'dtdc',        label: 'DTDC',         flag: '🇮🇳' },
+        { slug: 'xpressbees',  label: 'XpressBees',   flag: '🇮🇳' },
+        { slug: 'dhl',         label: 'DHL Express',  flag: '🌍' },
+        { slug: 'fedex',       label: 'FedEx',        flag: '🌍' },
+        { slug: 'ups',         label: 'UPS',          flag: '🌍' },
+        { slug: 'aramex',      label: 'Aramex',       flag: '🌍' },
+    ];
+
     // Submission confirmation state
     const [confirmSubmit, setConfirmSubmit] = useState(null); // { milestoneId, evidenceUrl }
 
@@ -99,6 +119,18 @@ export default function ContractPage() {
                 if (d?.ethereum) setEthRates({ USD: d.ethereum.usd, EUR: d.ethereum.eur, GBP: d.ethereum.gbp, INR: d.ethereum.inr });
             }).catch(() => { });
     }, []);
+
+    // Auto-fetch tracking for submitted product milestones on load
+    // Must be here (before early returns) to satisfy Rules of Hooks
+    useEffect(() => {
+        if (!contract || contract.workType !== 'product') return;
+        (contract.milestones || []).forEach(m => {
+            if ((m.status === 'Submitted' || m.status === 'Approved') && m.trackingId && m.courier) {
+                fetchTracking(m.id, m.trackingId, m.courier);
+            }
+        });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [contract?.id]);
 
     if (loading) return (
         <AuthGuard><Navbar />
@@ -252,6 +284,26 @@ export default function ContractPage() {
         }
     };
 
+    // ── Fetch shipment tracking (product milestones) ──────────────────────────
+    const fetchTracking = async (milestoneId, trackingId, courier) => {
+        if (!trackingId || !courier) return;
+        setTrackingLoading(p => ({ ...p, [milestoneId]: true }));
+        try {
+            const res = await fetch('/api/track-shipment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ trackingId, courier }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Tracking failed');
+            setShipmentData(p => ({ ...p, [milestoneId]: data }));
+        } catch (err) {
+            toast.error('Could not fetch tracking: ' + err.message);
+        } finally {
+            setTrackingLoading(p => ({ ...p, [milestoneId]: false }));
+        }
+    };
+
     const handleSubmitReview = async () => {
         if (!myRating) return toast.error('Please select a star rating.');
         setReviewSubmitting(true);
@@ -327,6 +379,16 @@ export default function ContractPage() {
                                         <IndianRupee size={9} /> Fiat Funded
                                     </span>
                                 )}
+                            {/* Work type badge */}
+                            {contract.workType === 'product' ? (
+                                <span className="flex items-center gap-1 text-[10px] font-bold text-white bg-orange-500 px-2 py-0.5 rounded-full">
+                                    <PackageCheck size={9} /> Product
+                                </span>
+                            ) : (
+                                <span className="flex items-center gap-1 text-[10px] font-bold text-white bg-violet-500 px-2 py-0.5 rounded-full">
+                                    <Wrench size={9} /> Service
+                                </span>
+                            )}
                             </div>
                             <div className="flex items-center gap-4 text-[12px] text-slate-400">
                                 <span className="flex items-center gap-1.5">
@@ -427,6 +489,7 @@ export default function ContractPage() {
                                             </button>
                                         </div>
                                     </div>
+
                                 </div>
                             )}
 
@@ -534,6 +597,18 @@ export default function ContractPage() {
                                                                     <ExternalLink size={10} /> View Evidence
                                                                 </a>
                                                             )}
+                                                            {/* PRODUCT: shipment tracker card */}
+                                                            {contract.workType === 'product' && m.trackingId && (m.status === 'Submitted' || m.status === 'Approved') && (
+                                                                <div className="mt-3 w-full">
+                                                                    <ShipmentTrackerCard
+                                                                        milestone={m}
+                                                                        COURIERS={COURIERS}
+                                                                        data={shipmentData[m.id]}
+                                                                        loading={trackingLoading[m.id]}
+                                                                        onRefresh={() => fetchTracking(m.id, m.trackingId, m.courier)}
+                                                                    />
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </div>
 
@@ -579,18 +654,57 @@ export default function ContractPage() {
                                                 {/* Submit Work — Freelancer only */}
                                                 {m.status === 'Pending' && isFreelancer && contract.status !== 'Agreement' && contract.status !== 'Rejected' && !isLocked && (
                                                     <div className="mt-4 pt-4 border-t border-slate-100 flex gap-2">
-                                                        <input value={evidence[m.id] || ''} onChange={e => setEvidence(p => ({ ...p, [m.id]: e.target.value }))}
-                                                            placeholder="Evidence URL (GitHub, Figma, Loom...)" className="input flex-1 py-2 text-xs" />
-                                                        <button disabled={!!actionLoading}
-                                                            onClick={() => {
-                                                                const url = evidence[m.id]?.trim();
-                                                                if (!url) { toast.error('Please enter an evidence URL'); return; }
-                                                                setConfirmSubmit({ milestoneId: m.id, evidenceUrl: url, milestoneTitle: m.title });
-                                                            }}
-                                                            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white disabled:opacity-60 transition-all"
-                                                            style={{ background: '#ffb43b' }}>
-                                                            <Upload size={12} /> {actionLoading === `sub-${m.id}` ? '...' : 'Submit Work'}
-                                                        </button>
+                                                        {(contract.workType || 'service') === 'service' ? (
+                                                            <>
+                                                                <input value={evidence[m.id] || ''} onChange={e => setEvidence(p => ({ ...p, [m.id]: e.target.value }))}
+                                                                    placeholder="Evidence URL (GitHub, Figma, Loom...)" className="input flex-1 py-2 text-xs" />
+                                                                <button disabled={!!actionLoading}
+                                                                    onClick={() => {
+                                                                        const url = evidence[m.id]?.trim();
+                                                                        if (!url) { toast.error('Please enter an evidence URL'); return; }
+                                                                        setConfirmSubmit({ milestoneId: m.id, evidenceUrl: url, milestoneTitle: m.title });
+                                                                    }}
+                                                                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white disabled:opacity-60 transition-all"
+                                                                    style={{ background: '#f5a623' }}>
+                                                                    <Upload size={12} /> {actionLoading === `sub-${m.id}` ? '...' : 'Submit Work'}
+                                                                </button>
+                                                            </>
+                                                        ) : (
+                                                            <div className="flex gap-2 w-full">
+                                                                <select
+                                                                    value={selectedCourier[m.id] || ''}
+                                                                    onChange={e => setSelectedCourier(p => ({ ...p, [m.id]: e.target.value }))}
+                                                                    className="input py-2 text-xs rounded-xl"
+                                                                    style={{ minWidth: 0, flex: 1 }}>
+                                                                    <option value="">Select Courier…</option>
+                                                                    {COURIERS.map(c => (
+                                                                        <option key={c.slug} value={c.slug}>
+                                                                            {c.flag} {c.label}
+                                                                        </option>
+                                                                    ))}
+                                                                </select>
+                                                                <input
+                                                                    value={trackingInput[m.id] || ''}
+                                                                    onChange={e => setTrackingInput(p => ({ ...p, [m.id]: e.target.value }))}
+                                                                    placeholder="Tracking ID"
+                                                                    className="input py-2 text-xs rounded-xl"
+                                                                    style={{ flex: 1 }} />
+                                                                <button
+                                                                    disabled={!!actionLoading || !selectedCourier[m.id] || !trackingInput[m.id]}
+                                                                    onClick={() => act(`sub-${m.id}`, () => submitMilestone(
+                                                                        id, m.id,
+                                                                        trackingInput[m.id],
+                                                                        contract.freelancerName,
+                                                                        'product',
+                                                                        selectedCourier[m.id]
+                                                                    ))}
+                                                                    className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white disabled:opacity-60 transition-all"
+                                                                    style={{ background: '#f97316' }}>
+                                                                    <Truck size={13} />
+                                                                    {actionLoading === `sub-${m.id}` ? '...' : 'Submit Tracking ID'}
+                                                                </button>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 )}
 
@@ -612,9 +726,17 @@ export default function ContractPage() {
                                                 )}
 
                                                 {m.status === 'Submitted' && isFreelancer && (
-                                                    <p className="mt-3 text-xs text-amber-600 font-semibold flex items-center gap-1.5">
-                                                        <CheckCircle size={12} /> Submitted — awaiting client review
-                                                    </p>
+                                                    <div className="mt-3">
+                                                        <p className="text-xs text-amber-600 font-semibold flex items-center gap-1.5">
+                                                            <CheckCircle size={12} /> Submitted — awaiting client review
+                                                        </p>
+                                                        {contract.workType === 'product' && m.trackingId && (
+                                                            <p className="text-[11px] text-slate-400 flex items-center gap-1.5 pl-0.5 mt-1">
+                                                                <Truck size={11} />
+                                                                {COURIERS.find(c => c.slug === m.courier)?.flag} {COURIERS.find(c => c.slug === m.courier)?.label || m.courier} · <span className="font-mono">{m.trackingId}</span>
+                                                            </p>
+                                                        )}
+                                                    </div>
                                                 )}
                                             </div>
                                         );
@@ -957,5 +1079,102 @@ export default function ContractPage() {
                 )}
             </div>
         </AuthGuard>
+    );
+}
+
+// ── Shipment Tracker Card ──────────────────────────────────────────────────────
+function ShipmentTrackerCard({ milestone, COURIERS, data, loading, onRefresh }) {
+    const courierLabel = COURIERS.find(c => c.slug === milestone.courier)?.label || milestone.courier;
+    const courierFlag  = COURIERS.find(c => c.slug === milestone.courier)?.flag  || '📦';
+
+    const statusColors = {
+        'Order Placed':     { bg: 'bg-slate-100',  text: 'text-slate-600',  dot: 'bg-slate-400'  },
+        'Picked Up':        { bg: 'bg-blue-100',   text: 'text-blue-700',   dot: 'bg-blue-500'   },
+        'In Transit':       { bg: 'bg-amber-100',  text: 'text-amber-700',  dot: 'bg-amber-500'  },
+        'Out for Delivery': { bg: 'bg-orange-100', text: 'text-orange-700', dot: 'bg-orange-500' },
+        'Delivered':        { bg: 'bg-green-100',  text: 'text-green-700',  dot: 'bg-green-500'  },
+        'Exception':        { bg: 'bg-red-100',    text: 'text-red-700',    dot: 'bg-red-500'    },
+    };
+
+    const sc = statusColors[data?.status] || statusColors['In Transit'];
+
+    return (
+        <div className="mt-2 rounded-xl border border-orange-200 bg-orange-50/60 overflow-hidden">
+            {/* Header row */}
+            <div className="flex items-center justify-between px-3 py-2 bg-orange-100/80 border-b border-orange-200">
+                <div className="flex items-center gap-2">
+                    <span className="text-sm">{courierFlag}</span>
+                    <span className="text-xs font-bold text-orange-800">{courierLabel}</span>
+                    <span className="text-[10px] font-mono text-orange-600 bg-white px-1.5 py-0.5 rounded-md border border-orange-200">
+                        {milestone.trackingId}
+                    </span>
+                </div>
+                <button onClick={onRefresh} disabled={loading}
+                    className="flex items-center gap-1 text-[10px] text-orange-600 font-semibold hover:text-orange-800 disabled:opacity-60">
+                    <RefreshCw size={10} className={loading ? 'animate-spin' : ''} />
+                    {loading ? 'Fetching…' : 'Refresh'}
+                </button>
+            </div>
+
+            {loading && !data ? (
+                <div className="p-4 flex items-center gap-2 text-xs text-slate-400">
+                    <div className="w-3 h-3 rounded-full border-2 border-orange-300 border-t-transparent animate-spin" />
+                    Fetching tracking data…
+                </div>
+            ) : data ? (
+                <div className="p-3 space-y-3">
+                    {/* Status + Location */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${sc.bg} ${sc.text}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${sc.dot}`} />
+                            {data.status}
+                        </span>
+                        {data.location && (
+                            <span className="text-xs text-slate-500">📍 {data.location}</span>
+                        )}
+                        {data.estimatedDelivery && data.estimatedDelivery !== 'N/A' && (
+                            <span className="text-xs text-green-700 font-semibold ml-auto">
+                                Est. delivery: {data.estimatedDelivery}
+                            </span>
+                        )}
+                    </div>
+
+                    {/* Event timeline */}
+                    {data.events?.length > 0 && (
+                        <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                            {data.events.map((ev, i) => (
+                                <div key={i} className="flex items-start gap-2">
+                                    <div className="flex flex-col items-center pt-0.5">
+                                        <div className={`w-2 h-2 rounded-full shrink-0 ${i === 0 ? sc.dot : 'bg-slate-200'}`} />
+                                        {i < data.events.length - 1 && (
+                                            <div className="w-px flex-1 bg-slate-200 mt-0.5" style={{ minHeight: 10 }} />
+                                        )}
+                                    </div>
+                                    <div className="pb-1.5">
+                                        <p className={`text-[11px] font-semibold ${i === 0 ? sc.text : 'text-slate-600'}`}>
+                                            {ev.status}
+                                        </p>
+                                        {ev.location && (
+                                            <p className="text-[10px] text-slate-400">{ev.location}</p>
+                                        )}
+                                        <p className="text-[10px] text-slate-300 mt-0.5">{ev.date}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {data.isSimulated && (
+                        <p className="text-[9px] text-slate-300 italic">
+                            ⚠ Demo mode — add TRACKINGMORE_API_KEY to .env.local for live data
+                        </p>
+                    )}
+                </div>
+            ) : (
+                <div className="p-3 text-xs text-slate-400">
+                    Click <strong>Refresh</strong> to load shipment status.
+                </div>
+            )}
+        </div>
     );
 }
