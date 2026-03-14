@@ -113,219 +113,331 @@ function ClientDashboard({ contracts, totalValue, totalLocked, totalReleased, pr
                 </div>
 
                 <div className="min-h-screen pt-8 pb-16" style={{ background: '#f7f7f5' }}>
-                    <div className="max-w-[1000px] mx-auto px-6 lg:px-10">
-
-                        {/* Financial Health Row */}
-                        <Card className="p-8 mb-8 overflow-hidden bg-white border border-slate-100 shadow-md rounded-[24px]">
-                            <div className="flex flex-col lg:flex-row items-center gap-12">
-                                {/* Left Stats Grid */}
-                                <div className="flex-1 w-full">
-                                    <div className="flex items-center justify-between mb-8">
-                                        <h2 className="text-lg font-bold text-slate-900">Financial Health</h2>
-                                        <div className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full">
-                                            +12% vs last month
-                                        </div>
-                                    </div>
-                                    <div className="hidden lg:block w-px h-54 bg-slate-100"></div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-10 gap-x-6">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center shrink-0">
-                                                <Wallet className="text-slate-600" size={20} />
-                                            </div>
-                                            <div>
-                                                <p className="text-[10px] font-bold text-slate-900 uppercase tracking-widest mb-1">Total Contract Value</p>
-                                                <p className="text-2xl font-black text-slate-900">${totalValue.toLocaleString()}</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-12 h-12 rounded-2xl bg-[#fff8ec] flex items-center justify-center shrink-0">
-                                                <Lock className="text-[#f5a623]" size={20} />
-                                            </div>
-                                            <div>
-                                                <p className="text-[10px] font-bold text-slate-900 uppercase tracking-widest mb-1">Locked in Escrow</p>
-                                                <p className="text-2xl font-black text-slate-900">${totalLocked.toLocaleString()}</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center shrink-0">
-                                                <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center">
-                                                    <Check className="text-white" size={14} strokeWidth={3} />
+                    <div className="max-w-[1300px] mx-auto px-6 lg:px-10">
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+                            {/* LEFT COLUMN: Main Dashboard Content */}
+                            <div className="lg:col-span-2 space-y-8">
+                                {/* Financial Health Row */}
+                                <Card className="p-8 mb-8 overflow-hidden bg-white border border-slate-100 shadow-md rounded-[24px]">
+                                    <div className="flex flex-col lg:flex-row items-center gap-12">
+                                        {/* Left Stats Grid */}
+                                        <div className="flex-1 w-full">
+                                            <div className="flex items-center justify-between mb-8">
+                                                <h2 className="text-lg font-bold text-slate-900">Financial Health</h2>
+                                                <div className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full">
+                                                    +12% vs last month
                                                 </div>
                                             </div>
-                                            <div>
-                                                <p className="text-[10px] font-bold text-slate-900 uppercase tracking-widest mb-1">Released Funds</p>
-                                                <p className="text-2xl font-black text-slate-900">${totalReleased.toLocaleString()}</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-12 h-12 rounded-2xl bg-purple-50 flex items-center justify-center shrink-0">
-                                                <ClipboardList className="text-purple-600" size={20} />
-                                            </div>
-                                            <div>
-                                                <p className="text-[10px] font-bold text-slate-900 uppercase tracking-widest mb-1">Active Contracts</p>
-                                                <p className="text-2xl font-black text-slate-900">{activeContracts.length}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Divider line */}
-                                <div className="hidden lg:block w-px h-64 bg-slate-100"></div>
-
-                                {/* Right Donut Chart */}
-                                <div className="w-full lg:w-80 flex flex-col items-center justify-center">
-                                    <div className="relative w-56 h-56 flex items-center justify-center rounded-full"
-                                        style={{ background: `conic-gradient(#10b981 0% ${releasedPercentage}%, #f5a623 ${releasedPercentage}% ${releasedPercentage + lockedPercentage}%, #f1f5f9 ${releasedPercentage + lockedPercentage}% 100%)` }}>
-                                        <div className="absolute inset-0 m-[18px] bg-white rounded-full flex flex-col items-center justify-center z-10 shadow-sm">
-                                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Value</span>
-                                            <span className="text-3xl font-black text-slate-900">${totalValue.toLocaleString()}</span>
-                                        </div>
-                                    </div>
-                                    <div className="flex gap-10 mt-6">
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-3 h-3 rounded-full bg-[#f5a623]"></div>
-                                            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Locked</span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-3 h-3 rounded-full bg-[#10b981]"></div>
-                                            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Released</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </Card>
-
-                        {/* Escrow Capital Pipeline Card */}
-                        <Card className="p-8 mb-10 bg-white border border-slate-100 shadow-sm rounded-[24px]">
-                            <h2 className="text-lg font-bold text-slate-900 mb-8">Escrow Capital Pipeline</h2>
-
-                            <div className="flex flex-col md:flex-row items-center justify-evenly relative max-w-5xl mx-auto py-4">
-
-                                {/* Client Wallets */}
-                                <div className="flex flex-col items-center text-center z-10 bg-white px-6">
-                                    <div className="w-[72px] h-[72px] rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center mb-5 text-slate-600 shadow-sm">
-                                        <Building2 size={28} />
-                                    </div>
-                                    <h3 className="text-sm font-bold text-slate-900">Client Wallets</h3>
-                                    <p className="text-[11px] text-slate-400 mt-1">Funding Sources (ACH/Crypto)</p>
-                                </div>
-
-                                {/* Escrow Vault (Center) */}
-                                <div className="flex flex-col items-center text-center z-10 bg-white px-6 mt-10 md:mt-0">
-                                    <div className="w-[90px] h-[90px] rounded-full flex items-center justify-center mb-5 relative" style={{ background: '#fff8ec' }}>
-                                        {/* Rotating dashed border for high-tech look */}
-                                        <div className="absolute inset-0 rounded-full border-[3px] border-dashed border-[#f5a623] animate-[spin_12s_linear_infinite] opacity-60"></div>
-                                        <div className="w-[60px] h-[60px] rounded-full bg-[#f5a623] flex items-center justify-center shadow-lg shadow-[#f5a623]/30 z-10">
-                                            <Shield size={28} className="text-white absolute shrink-0" />
-                                        </div>
-                                    </div>
-                                    <h3 className="text-sm font-bold text-[#f5a623] mb-1.5">Escrow Vault</h3>
-                                    <p className="text-2xl font-black text-slate-900">${totalLocked.toLocaleString()}</p>
-                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Multi-Sig Secure</p>
-                                </div>
-
-                                {/* Freelancers */}
-                                <div className="flex flex-col items-center text-center z-10 bg-white px-6 mt-10 md:mt-0">
-                                    <div className="w-[72px] h-[72px] rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center mb-5 text-slate-600 shadow-sm">
-                                        <Users size={28} />
-                                    </div>
-                                    <h3 className="text-sm font-bold text-slate-900">Freelancers</h3>
-                                    <p className="text-[11px] text-slate-400 mt-1">Cross-Border Settlement</p>
-                                </div>
-
-                            </div>
-                        </Card>
-
-                        {/* Active Contracts Header */}
-                        <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-lg font-bold text-slate-900">Active Contracts</h2>
-                            <button className="text-[13px] font-semibold text-slate-600 bg-white border border-slate-200 px-5 py-2 rounded-full hover:bg-slate-50 transition-colors shadow-sm">
-                                View All
-                            </button>
-                        </div>
-
-                        {/* Contracts Grid */}
-                        {activeContracts.length === 0 ? (
-                            <Card className="p-12 flex flex-col items-center text-center gap-4 bg-white border border-slate-100 shadow-sm rounded-[24px]">
-                                <div className="text-5xl opacity-80">📋</div>
-                                <h3 className="text-xl font-bold text-slate-900 mt-2">No active contracts</h3>
-                                <p className="text-slate-500 text-sm max-w-sm">Create your first escrow contract and start securing your cross-border payments.</p>
-                                <Link href="/new-contract" className="btn-primary rounded-full px-6 py-3 mt-4">
-                                    <Plus size={16} /> Create Contract
-                                </Link>
-                            </Card>
-                        ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {activeContracts.map((contract) => {
-                                    const ms = contract.milestones || [];
-                                    const releasedAmount = ms.filter(m => m.status === 'Approved').reduce((s, m) => s + (m.amount || 0), 0);
-                                    const progress = contract.totalValue ? Math.round((releasedAmount / contract.totalValue) * 100) : 0;
-                                    const approvedCount = ms.filter(m => m.status === 'Approved').length;
-
-                                    // Pseudo-random colors for clients and freelancers avatars
-                                    const avatarColors = ['#d97706', '#059669', '#2563eb', '#7c3aed', '#db2777', '#dc2626'];
-                                    const cIndex = contract.clientName.length % avatarColors.length;
-                                    const fIndex = (contract.freelancerName.length + 1) % avatarColors.length;
-
-                                    return (
-                                        <Link key={contract.id} href={`/contract/${contract.id}`}>
-                                            <Card hover className="p-7 flex flex-col h-[280px] bg-white border border-slate-100 shadow-sm rounded-[24px] relative transition-all duration-300 hover:shadow-md hover:-translate-y-1">
-                                                <div className="flex justify-between items-start mb-6">
-                                                    <span className="text-[10px] font-bold text-slate-400 tracking-widest uppercase">{contract.id?.slice(0, 8)}</span>
-                                                    <span className={`px-2.5 py-1 text-[10px] font-bold rounded-full ${contract.status === 'Completed' ? 'bg-slate-100 text-slate-600' :
-                                                        contract.status === 'Agreement' ? 'bg-yellow-100 text-yellow-700' :
-                                                            'bg-emerald-50 text-emerald-600'
-                                                        }`}>
-                                                        {contract.status}
-                                                    </span>
-                                                </div>
-
-                                                <h3 className="text-[19px] font-bold text-slate-900 mb-6 line-clamp-2 leading-tight flex-1">
-                                                    {contract.title}
-                                                </h3>
-
-                                                <div className="flex items-center gap-3 mb-8">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="w-[22px] h-[22px] rounded-full" style={{ background: avatarColors[cIndex] }}></div>
-                                                        <span className="text-xs text-slate-700 font-medium">Client</span>
+                                            <div className="hidden lg:block w-px h-54 bg-slate-100"></div>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-10 gap-x-6">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center shrink-0">
+                                                        <Wallet className="text-slate-600" size={20} />
                                                     </div>
-                                                    <ArrowRight size={14} className="text-slate-300 mx-1" />
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="w-[22px] h-[22px] rounded-full" style={{ background: avatarColors[fIndex] }}></div>
-                                                        <span className="text-xs text-slate-700 font-medium truncate max-w-[100px]">
-                                                            {(contract.freelancerName.split(' ')[0] || 'User')} ({contract.freelancerCountry.slice(0, 2).toUpperCase()})
-                                                        </span>
+                                                    <div>
+                                                        <p className="text-[10px] font-bold text-slate-900 uppercase tracking-widest mb-1">Total Contract Value</p>
+                                                        <p className="text-2xl font-black text-slate-900">${totalValue.toLocaleString()}</p>
                                                     </div>
                                                 </div>
-
-                                                <div className="mt-auto pt-1">
-                                                    <div className="flex justify-between items-end mb-5">
-                                                        <span className="text-[13px] text-slate-500 font-medium">Contract Value</span>
-                                                        <span className="text-[22px] font-black text-slate-900">${(contract.totalValue || 0).toLocaleString()}</span>
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-12 h-12 rounded-2xl bg-[#fff8ec] flex items-center justify-center shrink-0">
+                                                        <Lock className="text-[#f5a623]" size={20} />
                                                     </div>
-
-                                                    <div className="flex justify-between text-[10px] font-bold text-slate-400 mb-2.5 uppercase tracking-widest">
-                                                        <span>Milestones ({approvedCount}/{ms.length})</span>
-                                                        <span>{progress}%</span>
-                                                    </div>
-                                                    <div className="h-[6px] bg-slate-100 rounded-full overflow-hidden">
-                                                        <div className="h-full rounded-full transition-all duration-500"
-                                                            style={{ width: `${progress}%`, background: '#2563eb' }}></div>
+                                                    <div>
+                                                        <p className="text-[10px] font-bold text-slate-900 uppercase tracking-widest mb-1">Locked in Escrow</p>
+                                                        <p className="text-2xl font-black text-slate-900">${totalLocked.toLocaleString()}</p>
                                                     </div>
                                                 </div>
-                                            </Card>
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center shrink-0">
+                                                        <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center">
+                                                            <Check className="text-white" size={14} strokeWidth={3} />
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[10px] font-bold text-slate-900 uppercase tracking-widest mb-1">Released Funds</p>
+                                                        <p className="text-2xl font-black text-slate-900">${totalReleased.toLocaleString()}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-12 h-12 rounded-2xl bg-purple-50 flex items-center justify-center shrink-0">
+                                                        <ClipboardList className="text-purple-600" size={20} />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[10px] font-bold text-slate-900 uppercase tracking-widest mb-1">Active Contracts</p>
+                                                        <p className="text-2xl font-black text-slate-900">{activeContracts.length}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Divider line */}
+                                        <div className="hidden lg:block w-px h-64 bg-slate-100"></div>
+
+                                        {/* Right Donut Chart */}
+                                        <div className="w-full lg:w-80 flex flex-col items-center justify-center">
+                                            <div className="relative w-56 h-56 flex items-center justify-center rounded-full"
+                                                style={{ background: `conic-gradient(#10b981 0% ${releasedPercentage}%, #f5a623 ${releasedPercentage}% ${releasedPercentage + lockedPercentage}%, #f1f5f9 ${releasedPercentage + lockedPercentage}% 100%)` }}>
+                                                <div className="absolute inset-0 m-[18px] bg-white rounded-full flex flex-col items-center justify-center z-10 shadow-sm">
+                                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Value</span>
+                                                    <span className="text-3xl font-black text-slate-900">${totalValue.toLocaleString()}</span>
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-10 mt-6">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-3 h-3 rounded-full bg-[#f5a623]"></div>
+                                                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Locked</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-3 h-3 rounded-full bg-[#10b981]"></div>
+                                                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Released</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </Card>
+
+                                {/* Escrow Capital Pipeline Card */}
+                                <Card className="p-8 mb-10 bg-white border border-slate-100 shadow-sm rounded-[24px]">
+                                    <h2 className="text-lg font-bold text-slate-900 mb-8">Escrow Capital Pipeline</h2>
+
+                                    <div className="flex flex-col md:flex-row items-center justify-evenly relative max-w-5xl mx-auto py-4">
+
+                                        {/* Client Wallets */}
+                                        <div className="flex flex-col items-center text-center z-10 bg-white px-6">
+                                            <div className="w-[72px] h-[72px] rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center mb-5 text-slate-600 shadow-sm">
+                                                <Building2 size={28} />
+                                            </div>
+                                            <h3 className="text-sm font-bold text-slate-900">Client Wallets</h3>
+                                            <p className="text-[11px] text-slate-400 mt-1">Funding Sources (ACH/Crypto)</p>
+                                        </div>
+
+                                        {/* Escrow Vault (Center) */}
+                                        <div className="flex flex-col items-center text-center z-10 bg-white px-6 mt-10 md:mt-0">
+                                            <div className="w-[90px] h-[90px] rounded-full flex items-center justify-center mb-5 relative" style={{ background: '#fff8ec' }}>
+                                                {/* Rotating dashed border for high-tech look */}
+                                                <div className="absolute inset-0 rounded-full border-[3px] border-dashed border-[#f5a623] animate-[spin_12s_linear_infinite] opacity-60"></div>
+                                                <div className="w-[60px] h-[60px] rounded-full bg-[#f5a623] flex items-center justify-center shadow-lg shadow-[#f5a623]/30 z-10">
+                                                    <Shield size={28} className="text-white absolute shrink-0" />
+                                                </div>
+                                            </div>
+                                            <h3 className="text-sm font-bold text-[#f5a623] mb-1.5">Escrow Vault</h3>
+                                            <p className="text-2xl font-black text-slate-900">${totalLocked.toLocaleString()}</p>
+                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Multi-Sig Secure</p>
+                                        </div>
+
+                                        {/* Freelancers */}
+                                        <div className="flex flex-col items-center text-center z-10 bg-white px-6 mt-10 md:mt-0">
+                                            <div className="w-[72px] h-[72px] rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center mb-5 text-slate-600 shadow-sm">
+                                                <Users size={28} />
+                                            </div>
+                                            <h3 className="text-sm font-bold text-slate-900">Freelancers</h3>
+                                            <p className="text-[11px] text-slate-400 mt-1">Cross-Border Settlement</p>
+                                        </div>
+
+                                    </div>
+                                </Card>
+
+                                {/* Active Contracts Header */}
+                                <div className="flex items-center justify-between mb-6">
+                                    <h2 className="text-lg font-bold text-slate-900">Active Contracts</h2>
+                                    <button className="text-[13px] font-semibold text-slate-600 bg-white border border-slate-200 px-5 py-2 rounded-full hover:bg-slate-50 transition-colors shadow-sm">
+                                        View All
+                                    </button>
+                                </div>
+
+                                {/* Contracts Grid */}
+                                {activeContracts.length === 0 ? (
+                                    <Card className="p-12 flex flex-col items-center text-center gap-4 bg-white border border-slate-100 shadow-sm rounded-[24px]">
+                                        <div className="text-5xl opacity-80">📋</div>
+                                        <h3 className="text-xl font-bold text-slate-900 mt-2">No active contracts</h3>
+                                        <p className="text-slate-500 text-sm max-w-sm">Create your first escrow contract and start securing your cross-border payments.</p>
+                                        <Link href="/new-contract" className="btn-primary rounded-full px-6 py-3 mt-4">
+                                            <Plus size={16} /> Create Contract
                                         </Link>
-                                    );
-                                })}
+                                    </Card>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {activeContracts.map((contract) => {
+                                            const ms = contract.milestones || [];
+                                            const releasedAmount = ms.filter(m => m.status === 'Approved').reduce((s, m) => s + (m.amount || 0), 0);
+                                            const progress = contract.totalValue ? Math.round((releasedAmount / contract.totalValue) * 100) : 0;
+                                            const approvedCount = ms.filter(m => m.status === 'Approved').length;
+
+                                            // Pseudo-random colors for clients and freelancers avatars
+                                            const avatarColors = ['#d97706', '#059669', '#2563eb', '#7c3aed', '#db2777', '#dc2626'];
+                                            const cIndex = contract.clientName.length % avatarColors.length;
+                                            const fIndex = (contract.freelancerName.length + 1) % avatarColors.length;
+
+                                            return (
+                                                <Link key={contract.id} href={`/contract/${contract.id}`}>
+                                                    <Card hover className="p-7 flex flex-col h-[280px] bg-white border border-slate-100 shadow-sm rounded-[24px] relative transition-all duration-300 hover:shadow-md hover:-translate-y-1">
+                                                        <div className="flex justify-between items-start mb-6">
+                                                            <span className="text-[10px] font-bold text-slate-400 tracking-widest uppercase">{contract.id?.slice(0, 8)}</span>
+                                                            <span className={`px-2.5 py-1 text-[10px] font-bold rounded-full ${contract.status === 'Completed' ? 'bg-slate-100 text-slate-600' :
+                                                                contract.status === 'Agreement' ? 'bg-yellow-100 text-yellow-700' :
+                                                                    'bg-emerald-50 text-emerald-600'
+                                                                }`}>
+                                                                {contract.status}
+                                                            </span>
+                                                        </div>
+
+                                                        <h3 className="text-[19px] font-bold text-slate-900 mb-6 line-clamp-2 leading-tight flex-1">
+                                                            {contract.title}
+                                                        </h3>
+
+                                                        <div className="flex items-center gap-3 mb-8">
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="w-[22px] h-[22px] rounded-full" style={{ background: avatarColors[cIndex] }}></div>
+                                                                <span className="text-xs text-slate-700 font-medium">Client</span>
+                                                            </div>
+                                                            <ArrowRight size={14} className="text-slate-300 mx-1" />
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="w-[22px] h-[22px] rounded-full" style={{ background: avatarColors[fIndex] }}></div>
+                                                                <span className="text-xs text-slate-700 font-medium truncate max-w-[100px]">
+                                                                    {(contract.freelancerName.split(' ')[0] || 'User')} ({contract.freelancerCountry.slice(0, 2).toUpperCase()})
+                                                                </span>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="mt-auto pt-1">
+                                                            <div className="flex justify-between items-end mb-5">
+                                                                <span className="text-[13px] text-slate-500 font-medium">Contract Value</span>
+                                                                <span className="text-[22px] font-black text-slate-900">${(contract.totalValue || 0).toLocaleString()}</span>
+                                                            </div>
+
+                                                            <div className="flex justify-between text-[10px] font-bold text-slate-400 mb-2.5 uppercase tracking-widest">
+                                                                <span>Milestones ({approvedCount}/{ms.length})</span>
+                                                                <span>{progress}%</span>
+                                                            </div>
+                                                            <div className="h-[6px] bg-slate-100 rounded-full overflow-hidden">
+                                                                <div className="h-full rounded-full transition-all duration-500"
+                                                                    style={{ width: `${progress}%`, background: '#2563eb' }}></div>
+                                                            </div>
+                                                        </div>
+                                                    </Card>
+                                                </Link>
+                                            );
+                                        })}
+                                    </div>
+                                )}
                             </div>
-                        )}
+
+                            {/* RIGHT COLUMN: Profile & Activity */}
+                            <div className="lg:col-span-1 space-y-6 lg:space-y-8">
+                                {/* Profile Card */}
+                                <div className="rounded-[24px] p-8 flex flex-col items-center text-center shadow-md relative overflow-hidden"
+                                    style={{ background: 'linear-gradient(135deg, #fcd34d 0%, #f5a623 100%)' }}>
+                                    {/* Decorative circle */}
+                                    <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 rounded-full bg-white opacity-10"></div>
+
+                                    <div className="w-24 h-24 rounded-full bg-slate-200 border-[6px] border-[#fbb32f] mb-4 overflow-hidden shrink-0 shadow-lg">
+                                        <img src={`https://api.dicebear.com/7.x/notionists/svg?seed=${profile?.displayName || 'Client'}&backgroundColor=e2e8f0`} alt={profile?.displayName} className="w-full h-full object-cover" />
+                                    </div>
+                                    <h2 className="text-2xl font-black text-white tracking-tight">{profile?.displayName || 'Master Gaming'}</h2>
+                                    <p className="text-sm font-medium text-orange-100 mt-1 mb-6 flex items-center justify-center">
+                                        {profile?.country || 'Earth'}
+                                    </p>
+
+                                    <button className="flex items-center gap-2 px-6 py-2.5 rounded-2xl text-sm font-bold border-2 border-white/60 text-white transition-all hover:bg-white/10 w-full justify-center shadow-sm">
+                                        <div className="w-3 h-3 text-orange-200"><TrendingUp size={12} /></div> Edit profile
+                                    </button>
+                                </div>
+
+                                {/* Recent Activity */}
+                                <Card className="p-7 rounded-[24px] shadow-sm border border-slate-100 bg-white">
+                                    <div className="flex items-center justify-between mb-6">
+                                        <h3 className="font-bold text-slate-900 text-[19px]">Recent Activity</h3>
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Live</span>
+                                    </div>
+
+                                    {(() => {
+                                        // Build a flat list of recent events from contracts + milestones
+                                        const events = [];
+                                        for (const c of contracts) {
+                                            // Contract created event
+                                            if (c.createdAt) {
+                                                const d = c.createdAt?.toDate ? c.createdAt.toDate() : new Date(c.createdAt);
+                                                events.push({ type: 'created', date: d, contract: c });
+                                            }
+                                            // Milestone events
+                                            for (const m of (c.milestones || [])) {
+                                                if (m.status === 'Approved' && m.approvedAt) {
+                                                    const d = m.approvedAt?.toDate ? m.approvedAt.toDate() : new Date(m.approvedAt);
+                                                    events.push({ type: 'released', date: d, contract: c, milestone: m });
+                                                } else if (m.status === 'Submitted' && m.submittedAt) {
+                                                    const d = m.submittedAt?.toDate ? m.submittedAt.toDate() : new Date(m.submittedAt);
+                                                    events.push({ type: 'submitted', date: d, contract: c, milestone: m });
+                                                } else if (m.status === 'Rejected' && m.rejectedAt) {
+                                                    const d = m.rejectedAt?.toDate ? m.rejectedAt.toDate() : new Date(m.rejectedAt);
+                                                    events.push({ type: 'rejected', date: d, contract: c, milestone: m });
+                                                }
+                                            }
+                                        }
+                                        // Sort newest first and take top 5
+                                        events.sort((a, b) => b.date - a.date);
+                                        const recent = events.slice(0, 5);
+
+                                        if (recent.length === 0) {
+                                            return (
+                                                <div className="text-center py-8">
+                                                    <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-3">
+                                                        <Clock size={18} className="text-slate-400" />
+                                                    </div>
+                                                    <p className="text-sm text-slate-400 font-medium">No recent activity yet</p>
+                                                    <p className="text-[11px] text-slate-300 mt-1">Activity will appear here as contracts progress.</p>
+                                                </div>
+                                            );
+                                        }
+
+                                        const typeConfig = {
+                                            created: { label: 'Contract Created', badge: 'bg-blue-100 text-blue-700', dot: '#2563eb' },
+                                            released: { label: 'Funds Released', badge: 'bg-emerald-100 text-emerald-700', dot: '#10b981' },
+                                            submitted: { label: 'Work Submitted', badge: 'bg-yellow-100 text-yellow-700', dot: '#f59e0b' },
+                                            rejected: { label: 'Milestone Rejected', badge: 'bg-red-100 text-red-700', dot: '#ef4444' },
+                                        };
+
+                                        return (
+                                            <div className="space-y-5">
+                                                {recent.map((ev, i) => {
+                                                    const cfg = typeConfig[ev.type];
+                                                    const dateStr = ev.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                                                    return (
+                                                        <div key={i} className="flex gap-3 items-start border-b border-slate-50 pb-5 last:border-0 last:pb-0">
+                                                            <div className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: cfg.dot }}></div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <div className="flex justify-between items-start gap-2 mb-1">
+                                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${cfg.badge}`}>{cfg.label}</span>
+                                                                    <span className="text-[9px] font-bold text-slate-400 shrink-0">{dateStr}</span>
+                                                                </div>
+                                                                <Link href={`/contract/${ev.contract.id}`} className="hover:underline">
+                                                                    <h4 className="font-bold text-slate-900 text-[13px] truncate">{ev.contract.title}</h4>
+                                                                </Link>
+                                                                {ev.milestone && (
+                                                                    <p className="text-[11px] text-slate-500 mt-0.5 truncate">
+                                                                        Milestone: {ev.milestone.title}
+                                                                        {ev.type === 'released' && <span className="text-emerald-600 font-bold ml-1">+${ev.milestone.amount?.toLocaleString()}</span>}
+                                                                    </p>
+                                                                )}
+                                                                {ev.type === 'created' && (
+                                                                    <p className="text-[11px] text-slate-500 mt-0.5">with {ev.contract.freelancerName}</p>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        );
+                                    })()}
+                                </Card>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </AuthGuard>
     );
 }
-
 
 // ==========================================
 // FREELANCER DASHBOARD (New Professional UI)
@@ -669,6 +781,7 @@ function FreelancerDashboard({ contracts, totalValue, totalLocked, totalReleased
                                 </div>
                             </Card>
                         </div>
+
                     </div>
                 </div>
             </div>
