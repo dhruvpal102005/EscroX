@@ -22,6 +22,18 @@ export default function NewContractPage() {
     const { switchChainAsync } = useSwitchChain();
     const publicClient = usePublicClient();
 
+    const sendNotification = async (to, subject, type, data) => {
+        try {
+            await fetch('/api/send-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ to, subject, type, data }),
+            });
+        } catch (err) {
+            console.error('Failed to send email notification:', err);
+        }
+    };
+
     const [form, setForm] = useState({
         title: '', clientName: '', clientCountry: '',
         freelancerName: '', freelancerEmail: '', freelancerCountry: '',
@@ -227,6 +239,14 @@ export default function NewContractPage() {
 
             toast.success('Escrow initialized on-chain! 🎉', { id: 'tx' });
             setSubmitted(true);
+            sendNotification(form.freelancerEmail, "You've been invited to a new project! 🚀", 'new_contract', {
+                freelancerName: form.freelancerName,
+                clientName: form.clientName,
+                title: form.title,
+                amount: totalValue,
+                id: id,
+                milestones: form.milestones
+            });
             setTimeout(() => router.push(`/contract/${id}`), 1500);
         } catch (err) {
             console.error(err);
@@ -303,6 +323,14 @@ export default function NewContractPage() {
 
                             toast.success('Fiat payment verified! Escrow funded! 🎉', { id: 'rzp' });
                             setSubmitted(true);
+                            sendNotification(form.freelancerEmail, "You've been invited to a new project! 🚀", 'new_contract', {
+                                freelancerName: form.freelancerName,
+                                clientName: form.clientName,
+                                title: form.title,
+                                amount: totalValue,
+                                id: verifyData.contractId,
+                                milestones: form.milestones
+                            });
                             setTimeout(() => router.push(`/contract/${verifyData.contractId}`), 1500);
                             resolve();
                         } catch (err) { reject(err); }
