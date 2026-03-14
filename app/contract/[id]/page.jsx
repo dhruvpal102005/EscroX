@@ -13,7 +13,8 @@ import {
 import { getStatusColor, statusFlow } from '@/lib/store';
 import {
     Shield, CheckCircle, Upload, AlertTriangle,
-    ArrowLeft, Lock, ExternalLink, User, ChevronRight, Wallet, PartyPopper, XCircle, IndianRupee
+    ArrowLeft, Lock, ExternalLink, User, ChevronRight, Wallet, PartyPopper, XCircle, IndianRupee,
+    Banknote, Send, X, BadgeCheck
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useWriteContract, useAccount, useSwitchChain, usePublicClient } from 'wagmi';
@@ -35,6 +36,13 @@ export default function ContractPage() {
     const [evidence, setEvidence] = useState({});
     const [disputeModal, setDisputeModal] = useState(false);
     const [actionLoading, setActionLoading] = useState('');
+    const [payoutModal, setPayoutModal] = useState(false);
+    const [payoutTo, setPayoutTo] = useState('upi'); // 'upi' | 'bank'
+    const [upiId, setUpiId] = useState('');
+    const [accountNumber, setAccountNumber] = useState('');
+    const [ifsc, setIfsc] = useState('');
+    const [payoutLoading, setPayoutLoading] = useState(false);
+    const [payoutSuccess, setPayoutSuccess] = useState(null);
 
     // Real-time subscription
     useEffect(() => {
@@ -106,6 +114,47 @@ export default function ContractPage() {
     // Handle the optional UI toggle to INR (if the user wants to see their local currency)
     const inrValue = ethRates.INR ? (ethEquivalent * ethRates.INR) : 0;
 
+
+    const handlePayout = async () => {
+        const amountInr = contract.paymentMethod === 'razorpay'
+            ? Math.round((totalReleased / (contract.totalValue || 1)) * ((contract.amountInrPaise || 0) / 100))
+            : null;
+
+        if (contract.paymentMethod === 'razorpay') {
+            if (payoutTo === 'upi' && !upiId.trim()) { toast.error('Enter your UPI ID'); return; }
+            if (payoutTo === 'bank' && (!accountNumber.trim() || !ifsc.trim())) { toast.error('Enter account number and IFSC'); return; }
+        }
+
+        setPayoutLoading(true);
+        try {
+            if (contract.paymentMethod === 'razorpay') {
+                toast.loading('Processing payout...', { id: 'payout' });
+                const res = await fetch('/api/payout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contractId: id,
+                        freelancerName: contract.freelancerName,
+                        amount: amountInr,
+                        currency: 'INR',
+                        paymentMethod: 'razorpay',
+                        payoutTo,
+                        upiId: payoutTo === 'upi' ? upiId : undefined,
+                        accountNumber: payoutTo === 'bank' ? accountNumber : undefined,
+                        ifsc: payoutTo === 'bank' ? ifsc : undefined,
+                    }),
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Payout failed');
+                toast.success('Payout initiated! 🎉', { id: 'payout' });
+                setPayoutSuccess(data);
+            }
+        } catch (err) {
+            toast.error(err.message || 'Payout failed', { id: 'payout' });
+        } finally {
+            setPayoutLoading(false);
+        }
+    };
 
     const act = async (key, fn) => {
         setActionLoading(key);
@@ -396,6 +445,59 @@ export default function ContractPage() {
                                 </div>
                             </Card>
 
+                            {/* Freelancer Payout Panel — only shown when earnings exist */}
+                            {isFreelancer && totalReleased > 0 && (
+                                <Card className="p-5 border-2" style={{ borderColor: '#10b981', background: 'linear-gradient(135deg, #f0fdf4 0%, #fff 100%)' }}>
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: '#10b981' }}>
+                                            <Banknote size={14} className="text-white" />
+                                        </div>
+                                        <h3 className="text-sm font-bold text-slate-900">Your Earnings</h3>
+                                    </div>
+
+                                    <div className="space-y-2 mb-4">
+                                        <div className="flex justify-between">
+                                            <span className="text-xs text-slate-500">Total earned</span>
+                                            <span className="text-sm font-black text-slate-900">
+                                                {contract.paymentMethod === 'razorpay'
+                                                    ? `₹${Math.round((totalReleased / (contract.totalValue || 1)) * ((contract.amountInrPaise || 0) / 100)).toLocaleString('en-IN')}`
+                                                    : `${contract.currency || 'USD'} ${totalReleased.toLocaleString()}`
+                                                }
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-xs text-slate-500">Milestones approved</span>
+                                            <span className="text-xs font-bold text-green-600">
+                                                {(contract.milestones || []).filter(m => m.status === 'Approved').length} / {(contract.milestones || []).length}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {contract.paymentMethod === 'razorpay' ? (
+                                        <button
+                                            onClick={() => { setPayoutSuccess(null); setPayoutModal(true); }}
+                                            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90"
+                                            style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }}
+                                        >
+                                            <Send size={14} /> Redeem to Bank / UPI
+                                        </button>
+                                    ) : (
+                                        <div className="rounded-xl p-3 bg-blue-50 border border-blue-100">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <BadgeCheck size={14} className="text-blue-500" />
+                                                <p className="text-xs font-bold text-blue-700">Funds sent to your wallet</p>
+                                            </div>
+                                            <p className="text-[10px] text-blue-600 break-all font-mono">
+                                                {contract.freelancerWallet || 'Wallet address stored on-chain'}
+                                            </p>
+                                            {contract.txHash && (
+                                                <p className="text-[9px] text-slate-400 mt-1 truncate">tx: {contract.txHash}</p>
+                                            )}
+                                        </div>
+                                    )}
+                                </Card>
+                            )}
+
                             <Card className="p-5">
                                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Audit Trail</h3>
                                 <div className="space-y-4 max-h-80 overflow-y-auto">
@@ -423,6 +525,112 @@ export default function ContractPage() {
                         </div>
                     </div>
                 </div>
+
+                {/* Payout Modal */}
+                {payoutModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-100">
+                            <div className="p-5 border-b border-slate-100 flex items-center justify-between"
+                                style={{ background: 'linear-gradient(to right, #f0fdf4, #fff)' }}>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: '#10b981' }}>
+                                        <Banknote size={14} className="text-white" />
+                                    </div>
+                                    <h3 className="font-bold text-slate-900">Redeem Earnings</h3>
+                                </div>
+                                <button onClick={() => !payoutLoading && setPayoutModal(false)} className="text-slate-400 hover:text-slate-600">
+                                    <X size={20} />
+                                </button>
+                            </div>
+
+                            <div className="p-6">
+                                {payoutSuccess ? (
+                                    // Success screen
+                                    <div className="text-center py-4">
+                                        <div className="w-16 h-16 rounded-full bg-green-50 border-2 border-green-200 flex items-center justify-center mx-auto mb-4">
+                                            <BadgeCheck size={32} className="text-green-500" />
+                                        </div>
+                                        <h4 className="text-lg font-black text-slate-900 mb-1">Payout Initiated!</h4>
+                                        <p className="text-sm text-slate-500 mb-4">{payoutSuccess.message}</p>
+                                        <div className="bg-slate-50 rounded-xl p-3 text-left space-y-1 mb-6">
+                                            <div className="flex justify-between text-xs">
+                                                <span className="text-slate-400">Reference</span>
+                                                <span className="font-mono font-bold text-slate-700">{payoutSuccess.payoutRef}</span>
+                                            </div>
+                                            <div className="flex justify-between text-xs">
+                                                <span className="text-slate-400">Estimated arrival</span>
+                                                <span className="font-bold text-green-600">{payoutSuccess.estimatedArrival}</span>
+                                            </div>
+                                        </div>
+                                        <button onClick={() => setPayoutModal(false)}
+                                            className="btn-primary w-full justify-center" style={{ background: '#10b981' }}>
+                                            Done
+                                        </button>
+                                    </div>
+                                ) : (
+                                    // Input screen
+                                    <>
+                                        <p className="text-xs text-slate-500 mb-4">
+                                            Choose how to receive your earnings of
+                                            <strong className="text-slate-900"> ₹{Math.round((totalReleased / (contract.totalValue || 1)) * ((contract.amountInrPaise || 0) / 100)).toLocaleString('en-IN')}</strong>.
+                                        </p>
+
+                                        {/* Payout method tabs */}
+                                        <div className="grid grid-cols-2 gap-2 mb-5">
+                                            {[['upi', '⚡ UPI (Instant)'], ['bank', '🏦 Bank Transfer']].map(([val, label]) => (
+                                                <button key={val} type="button" onClick={() => setPayoutTo(val)}
+                                                    className={`py-2.5 rounded-xl text-xs font-bold border-2 transition-all ${payoutTo === val
+                                                        ? 'border-green-500 bg-green-50 text-green-700'
+                                                        : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>
+                                                    {label}
+                                                </button>
+                                            ))}
+                                        </div>
+
+                                        {payoutTo === 'upi' ? (
+                                            <div>
+                                                <label className="text-xs font-semibold text-slate-600 mb-1.5 block">UPI ID</label>
+                                                <input
+                                                    className="input"
+                                                    placeholder="yourname@upi"
+                                                    value={upiId}
+                                                    onChange={e => setUpiId(e.target.value)}
+                                                    disabled={payoutLoading}
+                                                />
+                                                <p className="text-[10px] text-slate-400 mt-1">Funds arrive instantly to your UPI-linked account.</p>
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-3">
+                                                <div>
+                                                    <label className="text-xs font-semibold text-slate-600 mb-1.5 block">Account Number</label>
+                                                    <input className="input" placeholder="Enter account number"
+                                                        value={accountNumber} onChange={e => setAccountNumber(e.target.value)} disabled={payoutLoading} />
+                                                </div>
+                                                <div>
+                                                    <label className="text-xs font-semibold text-slate-600 mb-1.5 block">IFSC Code</label>
+                                                    <input className="input" placeholder="e.g. SBIN0001234"
+                                                        value={ifsc} onChange={e => setIfsc(e.target.value.toUpperCase())} disabled={payoutLoading} />
+                                                </div>
+                                                <p className="text-[10px] text-slate-400">Arrives within 1-2 business days via NEFT/IMPS.</p>
+                                            </div>
+                                        )}
+
+                                        <button
+                                            onClick={handlePayout}
+                                            disabled={payoutLoading}
+                                            className="mt-6 w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-white disabled:opacity-60 transition-all"
+                                            style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }}
+                                        >
+                                            {payoutLoading
+                                                ? <><div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" /> Processing...</>
+                                                : <><Send size={15} /> Initiate Payout</>}
+                                        </button>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Dispute Modal */}
                 {disputeModal && (
