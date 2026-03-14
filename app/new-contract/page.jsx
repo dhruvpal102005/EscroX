@@ -27,6 +27,17 @@ export default function NewContractPage() {
         deadline: '', currency: 'USD',
         milestones: [{ title: '', amount: '', order: 0 }]
     });
+
+    // Auto-fill client name and country from logged-in user's profile
+    useEffect(() => {
+        if (profile || user) {
+            setForm(f => ({
+                ...f,
+                clientName: f.clientName || profile?.displayName || user?.displayName || '',
+                clientCountry: f.clientCountry || profile?.country || ''
+            }));
+        }
+    }, [profile, user]);
     const [submitted, setSubmitted] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -43,27 +54,38 @@ export default function NewContractPage() {
         const ms = [...f.milestones]; ms[i] = { ...ms[i], [key]: value }; return { ...f, milestones: ms };
     });
 
-    const [ethPrice, setEthPrice] = useState(0);
+    const [ethRates, setEthRates] = useState({});
 
     const totalValue = form.milestones.reduce((s, m) => s + (parseFloat(m.amount) || 0), 0);
-    const totalWei = ethPrice ? parseEther(((totalValue / ethPrice) * 1.005).toFixed(18)) : 0n; // 0.5% margin
+    // Use the specific active currency rate to determine exactly how much ETH is needed
+    const currentRate = ethRates[form.currency] || 0;
+    const totalWei = currentRate ? parseEther(((totalValue / currentRate) * 1.005).toFixed(18)) : 0n; // 0.5% margin
 
     const fetchPrice = async () => {
         try {
-            // In a real app, you'd call the contract's getLatestPrice or a public API
-            // For this UI, we'll fetch from a public API to keep it simple and reactive
-            const res = await fetch('https://api.coinbase.com/v2/prices/ETH-USD/spot');
+            const res = await fetch('https://api.coinbase.com/v2/exchange-rates?currency=ETH');
             const data = await res.json();
-            setEthPrice(parseFloat(data.data.amount));
+            const rates = data.data.rates;
+            
+            // Pluck only the currencies we need to build our state map
+            setEthRates({
+                USD: parseFloat(rates.USD),
+                EUR: parseFloat(rates.EUR),
+                GBP: parseFloat(rates.GBP),
+                INR: parseFloat(rates.INR),
+                USDC: parseFloat(rates.USDC)
+            });
         } catch (err) {
-            console.error("Failed to fetch ETH price", err);
-            setEthPrice(2500); // Fallback to a reasonable default
+            console.error("Failed to fetch ETH exchange rates:", err);
+            // Reasonable fallbacks to prevent breaking if Coinbase API fails
+            setEthRates({ USD: 2500, EUR: 2300, GBP: 1900, INR: 210000, USDC: 2500 }); 
         }
     };
 
     useEffect(() => {
         fetchPrice();
-        const interval = setInterval(fetchPrice, 30000); // Update every 30s
+        // Update live currency rates exactly every 60 seconds to stay hyper-accurate
+        const interval = setInterval(fetchPrice, 60000); 
         return () => clearInterval(interval);
     }, []);
 
@@ -88,7 +110,7 @@ export default function NewContractPage() {
                 deadline: data.deadline || f.deadline,
                 currency: data.currency || f.currency,
                 milestones: data.milestones?.length ? data.milestones.map((m, i) => ({
-                    title: m.title, amount: m.amount || 0, order: i
+                    title: m.title || '', amount: m.amount !== undefined ? m.amount.toString() : '', order: i
                 })) : f.milestones
             }));
 
@@ -299,7 +321,9 @@ export default function NewContractPage() {
                                         <input required className="input flex-1 py-2" placeholder="Milestone title"
                                             value={m.title} onChange={e => updateMs(i, 'title', e.target.value)} />
                                         <div className="flex items-center gap-1 border border-slate-200 rounded-xl px-3 bg-slate-50">
-                                            <span className="text-slate-400 text-sm">{form.currency === 'USDC' ? '₮' : '$'}</span>
+                                            <span className="text-slate-400 text-sm">
+                                                {form.currency === 'USDC' ? '₮' : form.currency === 'EUR' ? '€' : form.currency === 'GBP' ? '£' : form.currency === 'INR' ? '₹' : '$'}
+                                            </span>
                                             <input required type="number" min="1" className="w-24 py-2.5 bg-transparent text-sm text-slate-900 outline-none"
                                                 placeholder="0" value={m.amount} onChange={e => updateMs(i, 'amount', e.target.value)} />
                                         </div>
@@ -318,9 +342,9 @@ export default function NewContractPage() {
                                         {form.currency} {totalValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                                     </span>
                                 </div>
-                                {ethPrice > 0 && (
+                                {currentRate > 0 && (
                                     <p className="text-xs text-blue-500 font-medium">
-                                        ≈ {((totalValue / ethPrice) * 1.005).toFixed(4)} ETH (@ ${ethPrice.toLocaleString()}/ETH)
+                                        ≈ {((totalValue / currentRate) * 1.005).toFixed(4)} ETH (@ {form.currency === 'USDC' ? '₮' : form.currency === 'EUR' ? '€' : form.currency === 'GBP' ? '£' : form.currency === 'INR' ? '₹' : '$'}{currentRate.toLocaleString()}/ETH)
                                     </p>
                                 )}
                             </div>

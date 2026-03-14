@@ -1,4 +1,4 @@
-const { buildModule } = require("@nomicfoundation/hardhat-ignition/modules");
+import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 
 const EscrowModule = buildModule("EscrowModule", (m) => {
     // Pass the deployer address as the arbiter for now
@@ -13,6 +13,4 @@ const EscrowModule = buildModule("EscrowModule", (m) => {
     return { escrow, mockAggregator };
 });
 
-module.exports = EscrowModule;
-
-
+export default EscrowModule;
