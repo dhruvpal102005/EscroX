@@ -13,7 +13,7 @@ import {
 import { getStatusColor, statusFlow } from '@/lib/store';
 import {
     Shield, CheckCircle, Upload, AlertTriangle,
-    ArrowLeft, Lock, ExternalLink, User, ChevronRight, Wallet, PartyPopper, XCircle
+    ArrowLeft, Lock, ExternalLink, User, ChevronRight, Wallet, PartyPopper, XCircle, IndianRupee
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useWriteContract, useAccount, useSwitchChain } from 'wagmi';
@@ -91,8 +91,9 @@ export default function ContractPage() {
     const act = async (key, fn) => {
         setActionLoading(key);
         try {
-            // If it's an approval and on-chain, trigger the smart contract first
-            if (key.startsWith('app-') && contract.onChain) {
+            // If it's an approval and on-chain via wallet (not fiat), trigger the smart contract first
+            const isFiatFunded = contract.paymentMethod === 'razorpay';
+            if (key.startsWith('app-') && contract.onChain && !isFiatFunded) {
                 if (!isConnected) throw new Error('Connect your wallet to release funds');
                 const mId = key.split('-')[1];
                 const milestone = contract.milestones.find(m => m.id === mId);
@@ -151,6 +152,11 @@ export default function ContractPage() {
                                         🔗 {contract.txHash.slice(0, 16)}…
                                     </span>
                                 )}
+                            {contract.paymentMethod === 'razorpay' && (
+                                <span className="flex items-center gap-1 text-[10px] font-bold text-white bg-green-500 px-2 py-0.5 rounded-full">
+                                    <IndianRupee size={9} /> Fiat Funded
+                                </span>
+                            )}
                             </div>
                             <h1 className="text-2xl font-black text-slate-900">{contract.title}</h1>
                             <div className="flex flex-wrap items-center gap-2 mt-2 text-sm">
@@ -328,6 +334,19 @@ export default function ContractPage() {
                                             <span className="font-black text-sm" style={{ color }}>{value}</span>
                                         </div>
                                     ))}
+
+                                    {contract.paymentMethod === 'razorpay' && (
+                                        <div className="pt-2 border-t border-slate-100">
+                                            <div className="flex justify-between items-center mb-1">
+                                                <span className="text-xs text-slate-400 flex items-center gap-1"><IndianRupee size={10} /> Paid (INR)</span>
+                                                <span className="text-xs font-bold text-green-600">₹{((contract.amountInrPaise || 0) / 100).toLocaleString('en-IN')}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-xs text-slate-400">EscroTokens</span>
+                                                <span className="text-xs font-bold text-purple-600">{contract.escrowTokenAmount ?? contract.totalValue} ESC</span>
+                                            </div>
+                                        </div>
+                                    )}
 
                                     <div className="pt-2">
                                         <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
