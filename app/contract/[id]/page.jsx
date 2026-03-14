@@ -16,7 +16,7 @@ import {
     ArrowLeft, Lock, ExternalLink, User, ChevronRight, Wallet, PartyPopper, XCircle
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { useWriteContract, useAccount, useSwitchChain } from 'wagmi';
+import { useWriteContract, useAccount, useSwitchChain, usePublicClient } from 'wagmi';
 import { localhost } from 'wagmi/chains';
 import { ESCROW_ADDRESS, ESCROW_ABI } from '@/lib/contracts';
 
@@ -28,6 +28,7 @@ export default function ContractPage() {
     const { isConnected, address: walletAddress, chainId } = useAccount();
     const { writeContractAsync } = useWriteContract();
     const { switchChainAsync } = useSwitchChain();
+    const publicClient = usePublicClient();
     const { user } = useAuth();
     const [contract, setContract] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -45,21 +46,33 @@ export default function ContractPage() {
         return () => unsub();
     }, [id]);
 
-    const [inrPrice, setInrPrice] = useState(0);
+    const [ethRates, setEthRates] = useState({});
     const [showLocal, setShowLocal] = useState(false);
 
-    const fetchInrPrice = async () => {
+    const fetchRates = async () => {
         try {
-            const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=inr');
+            const res = await fetch('https://api.coinbase.com/v2/exchange-rates?currency=ETH');
             const data = await res.json();
-            setInrPrice(data.ethereum.inr);
+            const rates = data.data.rates;
+            
+            setEthRates({
+                USD: parseFloat(rates.USD),
+                EUR: parseFloat(rates.EUR),
+                GBP: parseFloat(rates.GBP),
+                INR: parseFloat(rates.INR),
+                USDC: parseFloat(rates.USDC)
+            });
         } catch (err) {
-            console.error("Failed to fetch INR price", err);
+            console.error("Failed to fetch ETH exchange rates:", err);
+            // Reasonable fallbacks if Coinbase API fails
+            setEthRates({ USD: 2500, EUR: 2300, GBP: 1900, INR: 210000, USDC: 2500 }); 
         }
     };
 
     useEffect(() => {
-        fetchInrPrice();
+        fetchRates();
+        const interval = setInterval(fetchRates, 60000); 
+        return () => clearInterval(interval);
     }, []);
 
     if (loading) return (
@@ -82,10 +95,16 @@ export default function ContractPage() {
     const isFreelancer = user?.email === contract.freelancerEmail;
     const totalReleased = (contract.milestones || []).filter(m => m.status === 'Approved').reduce((s, m) => s + m.amount, 0);
     const totalLocked = contract.totalValue - totalReleased;
-
-    // Estimate ETH based on USD total Value (assuming $2500 fallback)
-    const ethEquivalent = contract.totalValue / 2500;
-    const inrValue = inrPrice ? (ethEquivalent * inrPrice) : 0;
+    
+    // Determine the exchange rate based on the contract's stored currency
+    const contractCurrency = contract.currency || 'USD';
+    const currentRate = ethRates[contractCurrency] || 0;
+    
+    // Estimate ETH based on the dynamic total Value
+    const ethEquivalent = currentRate > 0 ? (contract.totalValue / currentRate) : 0; 
+    
+    // Handle the optional UI toggle to INR (if the user wants to see their local currency)
+    const inrValue = ethRates.INR ? (ethEquivalent * ethRates.INR) : 0;
 
 
     const act = async (key, fn) => {
@@ -96,7 +115,13 @@ export default function ContractPage() {
                 if (!isConnected) throw new Error('Connect your wallet to release funds');
                 const mId = key.split('-')[1];
                 const milestone = contract.milestones.find(m => m.id === mId);
-                const mIdx = milestone.order; // Assuming order is the index
+                const mIdx = milestone.order;
+                
+                if (contract.onChainId === undefined || contract.onChainId === null) {
+                    throw new Error('On-chain Project ID not found. This contract may not have been initialized correctly.');
+                }
+
+                console.log(`Approving milestone on-chain. Project: ${contract.onChainId}, Milestone Index: ${mIdx}`);
 
                 if (chainId !== localhost.id) {
                     toast.loading('Switching to Local Testnet...', { id: 'tx' });
@@ -109,17 +134,28 @@ export default function ContractPage() {
                     address: ESCROW_ADDRESS,
                     abi: ESCROW_ABI,
                     functionName: 'approveMilestone',
-                    args: [BigInt(contract.onChainId ?? 0), BigInt(mIdx)],
+                    args: [BigInt(contract.onChainId), BigInt(mIdx)],
                 });
+                
                 toast.loading('Mining release transaction...', { id: 'tx' });
+                const receipt = await publicClient.waitForTransactionReceipt({ hash });
+                
+                if (receipt.status === 'reverted') {
+                    throw new Error('Transaction was reverted on-chain. Check that your wallet is the one that funded this contract.');
+                }
+
+                console.log('✅ Funds released on-chain! TxHash:', hash);
+                // Update the fn to include the txHash for the audit log
+                const originalFn = fn;
+                fn = () => originalFn(hash);
             }
 
             await fn();
 
             if (key === 'fund') toast.success('Funds locked safely in Escrow Vault', { id: 'tx' });
-            else if (key.startsWith('sub-')) toast.success('Milestone submitted for review');
-            else if (key.startsWith('app-')) toast.success('Milestone approved & funds released!', { id: 'tx' });
-            else if (key.startsWith('rej-')) toast.success('Milestone rejected');
+            else if (key.startsWith('sub-')) toast.success('Milestone submitted for review! The client has been notified.');
+            else if (key.startsWith('app-')) toast.success('🎉 Milestone approved! Funds transferred to freelancer on-chain!', { id: 'tx' });
+            else if (key.startsWith('rej-')) toast.success('Milestone rejected — freelancer must resubmit.');
             else if (key === 'accept') toast.success('Contract offer accepted! It is now active.');
             else if (key === 'decline') toast.success('Contract offer declined.');
             else if (key === 'dispute') toast.success('Dispute raised. Platform notified.');
@@ -164,10 +200,10 @@ export default function ContractPage() {
                             </div>
                         </div>
                         <div className="flex gap-2 items-center">
-                            {inrPrice > 0 && (
+                            {ethRates.INR > 0 && contractCurrency !== 'INR' && (
                                 <button onClick={() => setShowLocal(!showLocal)}
                                     className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 bg-white hover:bg-slate-50 transition-colors">
-                                    <span className={showLocal ? 'text-slate-400' : 'text-blue-600'}>USD</span>
+                                    <span className={showLocal ? 'text-slate-400' : 'text-blue-600'}>{contractCurrency}</span>
                                     <div className="w-8 h-4 bg-slate-100 rounded-full relative">
                                         <div className={`absolute top-0.5 w-3 h-3 rounded-full transition-all ${showLocal ? 'left-4.5 bg-blue-500' : 'left-0.5 bg-slate-400'}`} />
                                     </div>
@@ -319,9 +355,9 @@ export default function ContractPage() {
                                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Vault Status</h3>
                                 <div className="space-y-3">
                                     {[
-                                        { label: 'Total', value: showLocal && inrPrice ? `₹${inrValue.toLocaleString('en-IN')}` : `$${contract.totalValue?.toLocaleString()}`, color: '#0f172a' },
-                                        { label: 'Locked', value: showLocal && inrPrice ? `₹${(inrValue * (totalLocked / contract.totalValue)).toLocaleString('en-IN')}` : `$${totalLocked.toLocaleString()}`, color: '#8b5cf6' },
-                                        { label: 'Released', value: showLocal && inrPrice ? `₹${(inrValue * (totalReleased / contract.totalValue)).toLocaleString('en-IN')}` : `$${totalReleased.toLocaleString()}`, color: '#10b981' },
+                                        { label: 'Total', value: showLocal && ethRates.INR ? `₹${inrValue.toLocaleString('en-IN')}` : `${contractCurrency === 'USDC' ? '₮' : contractCurrency === 'EUR' ? '€' : contractCurrency === 'GBP' ? '£' : contractCurrency === 'INR' ? '₹' : '$'}${contract.totalValue?.toLocaleString()}`, color: '#0f172a' },
+                                        { label: 'Locked', value: showLocal && ethRates.INR ? `₹${(inrValue * (totalLocked / contract.totalValue)).toLocaleString('en-IN')}` : `${contractCurrency === 'USDC' ? '₮' : contractCurrency === 'EUR' ? '€' : contractCurrency === 'GBP' ? '£' : contractCurrency === 'INR' ? '₹' : '$'}${totalLocked.toLocaleString()}`, color: '#8b5cf6' },
+                                        { label: 'Released', value: showLocal && ethRates.INR ? `₹${(inrValue * (totalReleased / contract.totalValue)).toLocaleString('en-IN')}` : `${contractCurrency === 'USDC' ? '₮' : contractCurrency === 'EUR' ? '€' : contractCurrency === 'GBP' ? '£' : contractCurrency === 'INR' ? '₹' : '$'}${totalReleased.toLocaleString()}`, color: '#10b981' },
                                     ].map(({ label, value, color }) => (
                                         <div key={label} className="flex justify-between items-center">
                                             <span className="text-sm text-slate-400">{label}</span>

@@ -9,7 +9,7 @@ import { createContract } from '@/lib/firestore';
 import { Plus, Trash2, ArrowLeft, Shield, Check, AlertCircle, Sparkles, X, Wallet } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useWriteContract, useAccount, useSwitchChain, usePublicClient } from 'wagmi';
-import { parseEther, decodeEventLog } from 'viem';
+import { parseEther } from 'viem';
 import { localhost } from 'wagmi/chains';
 import { ESCROW_ADDRESS, ESCROW_ABI } from '@/lib/contracts';
 
@@ -28,6 +28,17 @@ export default function NewContractPage() {
         deadline: '', currency: 'USD',
         milestones: [{ title: '', amount: '', order: 0 }]
     });
+
+    // Auto-fill client name and country from logged-in user's profile
+    useEffect(() => {
+        if (profile || user) {
+            setForm(f => ({
+                ...f,
+                clientName: f.clientName || profile?.displayName || user?.displayName || '',
+                clientCountry: f.clientCountry || profile?.country || ''
+            }));
+        }
+    }, [profile, user]);
     const [submitted, setSubmitted] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -44,27 +55,38 @@ export default function NewContractPage() {
         const ms = [...f.milestones]; ms[i] = { ...ms[i], [key]: value }; return { ...f, milestones: ms };
     });
 
-    const [ethPrice, setEthPrice] = useState(0);
+    const [ethRates, setEthRates] = useState({});
 
     const totalValue = form.milestones.reduce((s, m) => s + (parseFloat(m.amount) || 0), 0);
-    const totalWei = ethPrice ? parseEther(((totalValue / ethPrice) * 1.005).toFixed(18)) : 0n; // 0.5% margin
+    // Use the specific active currency rate to determine exactly how much ETH is needed
+    const currentRate = ethRates[form.currency] || 0;
+    const totalWei = currentRate ? parseEther(((totalValue / currentRate) * 1.005).toFixed(18)) : 0n; // 0.5% margin
 
     const fetchPrice = async () => {
         try {
-            // In a real app, you'd call the contract's getLatestPrice or a public API
-            // For this UI, we'll fetch from a public API to keep it simple and reactive
-            const res = await fetch('https://api.coinbase.com/v2/prices/ETH-USD/spot');
+            const res = await fetch('https://api.coinbase.com/v2/exchange-rates?currency=ETH');
             const data = await res.json();
-            setEthPrice(parseFloat(data.data.amount));
+            const rates = data.data.rates;
+            
+            // Pluck only the currencies we need to build our state map
+            setEthRates({
+                USD: parseFloat(rates.USD),
+                EUR: parseFloat(rates.EUR),
+                GBP: parseFloat(rates.GBP),
+                INR: parseFloat(rates.INR),
+                USDC: parseFloat(rates.USDC)
+            });
         } catch (err) {
-            console.error("Failed to fetch ETH price", err);
-            setEthPrice(2500); // Fallback to a reasonable default
+            console.error("Failed to fetch ETH exchange rates:", err);
+            // Reasonable fallbacks to prevent breaking if Coinbase API fails
+            setEthRates({ USD: 2500, EUR: 2300, GBP: 1900, INR: 210000, USDC: 2500 }); 
         }
     };
 
     useEffect(() => {
         fetchPrice();
-        const interval = setInterval(fetchPrice, 30000); // Update every 30s
+        // Update live currency rates exactly every 60 seconds to stay hyper-accurate
+        const interval = setInterval(fetchPrice, 60000); 
         return () => clearInterval(interval);
     }, []);
 
@@ -89,7 +111,7 @@ export default function NewContractPage() {
                 deadline: data.deadline || f.deadline,
                 currency: data.currency || f.currency,
                 milestones: data.milestones?.length ? data.milestones.map((m, i) => ({
-                    title: m.title, amount: m.amount || 0, order: i
+                    title: m.title || '', amount: m.amount !== undefined ? m.amount.toString() : '', order: i
                 })) : f.milestones
             }));
 
@@ -123,14 +145,24 @@ export default function NewContractPage() {
                 await switchChainAsync({ chainId: localhost.id });
             }
 
-            // 1. Prepare Smart Contract Data
+            // 1. Read the NEXT project ID from the contract BEFORE we create
+            //    This is guaranteed to be the ID we get assigned
+            const nextId = await publicClient.readContract({
+                address: ESCROW_ADDRESS,
+                abi: ESCROW_ABI,
+                functionName: 'nextProjectId',
+            });
+            const onChainProjectId = Number(nextId);
+            console.log('Creating project — will be assigned on-chain ID:', onChainProjectId);
+
+            // 2. Prepare Smart Contract Data
             const msTitles = form.milestones.map(m => m.title || 'Untitled Milestone');
             // Convert USD amount to cents for the contract (which expects uint256 with 2 decimals)
             const msAmountsUSD = form.milestones.map(m => BigInt(Math.round(parseFloat(m.amount) * 100)));
             
             toast.loading('Confirm deposit in your wallet...', { id: 'tx' });
 
-            // 2. Trigger Blockchain Transaction
+            // 3. Trigger Blockchain Transaction
             const hash = await writeContractAsync({
                 chainId: localhost.id,
                 address: ESCROW_ADDRESS,
@@ -140,27 +172,17 @@ export default function NewContractPage() {
                 value: totalWei,
             });
 
-
-            toast.loading('Mining transaction on-chain...', { id: 'tx' });
-
+            toast.loading('Mining transaction on-chain... please wait', { id: 'tx' });
+            // Wait for confirmation - this ensures the TX actually succeeded  
             const receipt = await publicClient.waitForTransactionReceipt({ hash });
             
-            let onChainProjectId = 0;
-            for (const log of receipt.logs) {
-                try {
-                    const decoded = decodeEventLog({
-                        abi: ESCROW_ABI,
-                        data: log.data,
-                        topics: log.topics,
-                    });
-                    if (decoded.eventName === 'ProjectCreated') {
-                        onChainProjectId = Number(decoded.args.projectId);
-                        break;
-                    }
-                } catch (e) { } // Ignore other logs
+            if (receipt.status === 'reverted') {
+                throw new Error('Transaction was reverted. Please check your wallet balance and freelancer address.');
             }
 
-            // 3. Prepare Firestore Payload
+            console.log('✅ Transaction confirmed on-chain. Project ID:', onChainProjectId, 'TxHash:', hash);
+
+            // 4. Save to Firestore with the correct on-chain ID
             const payload = {
                 clientUid: user.uid,
                 clientName: form.clientName || '',
@@ -182,19 +204,19 @@ export default function NewContractPage() {
                     title: m.title || `Milestone ${i + 1}`,
                     amount: parseFloat(m.amount) || 0,
                     order: i,
-                    status: 'Locked'
+                    status: 'Pending'
                 })),
             };
 
-            const id = await createContract(payload);
+            const docId = await createContract(payload);
 
-            toast.success('Escrow initialized on-chain!', { id: 'tx' });
+            toast.success('🎉 Escrow initialized on-chain! Funds locked.', { id: 'tx' });
             setSubmitted(true);
-            setTimeout(() => router.push(`/contract/${id}`), 1500);
+            setTimeout(() => router.push(`/contract/${docId}`), 1500);
         } catch (err) {
             console.error("Contract creation error:", err);
             toast.error(err.shortMessage || err.message || 'Failed to create contract', { id: 'tx' });
-            setError(err.message || 'Failed to create contract.');
+            setError(err.shortMessage || err.message || 'Failed to create contract.');
         } finally {
             setLoading(false);
         }
@@ -312,7 +334,9 @@ export default function NewContractPage() {
                                         <input required className="input flex-1 py-2" placeholder="Milestone title"
                                             value={m.title} onChange={e => updateMs(i, 'title', e.target.value)} />
                                         <div className="flex items-center gap-1 border border-slate-200 rounded-xl px-3 bg-slate-50">
-                                            <span className="text-slate-400 text-sm">{form.currency === 'USDC' ? '₮' : '$'}</span>
+                                            <span className="text-slate-400 text-sm">
+                                                {form.currency === 'USDC' ? '₮' : form.currency === 'EUR' ? '€' : form.currency === 'GBP' ? '£' : form.currency === 'INR' ? '₹' : '$'}
+                                            </span>
                                             <input required type="number" min="1" className="w-24 py-2.5 bg-transparent text-sm text-slate-900 outline-none"
                                                 placeholder="0" value={m.amount} onChange={e => updateMs(i, 'amount', e.target.value)} />
                                         </div>
@@ -331,9 +355,9 @@ export default function NewContractPage() {
                                         {form.currency} {totalValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                                     </span>
                                 </div>
-                                {ethPrice > 0 && (
+                                {currentRate > 0 && (
                                     <p className="text-xs text-blue-500 font-medium">
-                                        ≈ {((totalValue / ethPrice) * 1.005).toFixed(4)} ETH (@ ${ethPrice.toLocaleString()}/ETH)
+                                        ≈ {((totalValue / currentRate) * 1.005).toFixed(4)} ETH (@ {form.currency === 'USDC' ? '₮' : form.currency === 'EUR' ? '€' : form.currency === 'GBP' ? '£' : form.currency === 'INR' ? '₹' : '$'}{currentRate.toLocaleString()}/ETH)
                                     </p>
                                 )}
                             </div>

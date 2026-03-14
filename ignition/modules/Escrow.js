@@ -14,5 +14,3 @@ const EscrowModule = buildModule("EscrowModule", (m) => {
 });
 
 export default EscrowModule;
-
-
