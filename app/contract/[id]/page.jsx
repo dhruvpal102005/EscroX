@@ -7,12 +7,13 @@ import AuthGuard from '@/components/AuthGuard';
 import { useAuth } from '@/context/AuthContext';
 import {
     subscribeToContract, submitMilestone, approveMilestone,
-    rejectMilestone, fundContract, raiseDispute
+    rejectMilestone, fundContract, raiseDispute,
+    acceptContract, rejectContract
 } from '@/lib/firestore';
 import { getStatusColor, statusFlow } from '@/lib/store';
 import {
     Shield, CheckCircle, Upload, AlertTriangle,
-    ArrowLeft, Lock, ExternalLink, User, ChevronRight, Wallet
+    ArrowLeft, Lock, ExternalLink, User, ChevronRight, Wallet, PartyPopper, XCircle
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useWriteContract, useAccount, useSwitchChain } from 'wagmi';
@@ -77,11 +78,13 @@ export default function ContractPage() {
     );
 
     const currentStepIdx = statusFlow.indexOf(contract.status);
+    const isClient = user?.uid === contract.clientUid;
+    const isFreelancer = user?.email === contract.freelancerEmail;
     const totalReleased = (contract.milestones || []).filter(m => m.status === 'Approved').reduce((s, m) => s + m.amount, 0);
     const totalLocked = contract.totalValue - totalReleased;
-    
+
     // Estimate ETH based on USD total Value (assuming $2500 fallback)
-    const ethEquivalent = contract.totalValue / 2500; 
+    const ethEquivalent = contract.totalValue / 2500;
     const inrValue = inrPrice ? (ethEquivalent * inrPrice) : 0;
 
 
@@ -117,6 +120,8 @@ export default function ContractPage() {
             else if (key.startsWith('sub-')) toast.success('Milestone submitted for review');
             else if (key.startsWith('app-')) toast.success('Milestone approved & funds released!', { id: 'tx' });
             else if (key.startsWith('rej-')) toast.success('Milestone rejected');
+            else if (key === 'accept') toast.success('Contract offer accepted! It is now active.');
+            else if (key === 'decline') toast.success('Contract offer declined.');
             else if (key === 'dispute') toast.success('Dispute raised. Platform notified.');
         } catch (err) {
             console.error(err);
@@ -160,7 +165,7 @@ export default function ContractPage() {
                         </div>
                         <div className="flex gap-2 items-center">
                             {inrPrice > 0 && (
-                                <button onClick={() => setShowLocal(!showLocal)} 
+                                <button onClick={() => setShowLocal(!showLocal)}
                                     className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 bg-white hover:bg-slate-50 transition-colors">
                                     <span className={showLocal ? 'text-slate-400' : 'text-blue-600'}>USD</span>
                                     <div className="w-8 h-4 bg-slate-100 rounded-full relative">
@@ -171,7 +176,7 @@ export default function ContractPage() {
                             )}
                             <span className={`badge ${getStatusColor(contract.status)}`}>{contract.status}</span>
 
-                            {!['Disputed', 'Completed'].includes(contract.status) && (
+                            {!['Disputed', 'Completed', 'Rejected'].includes(contract.status) && (
                                 <button onClick={() => setDisputeModal(true)} className="btn-ghost text-red-500 text-xs border-red-200">
                                     <AlertTriangle size={12} /> Raise Dispute
                                 </button>
@@ -208,14 +213,42 @@ export default function ContractPage() {
                         <div className="lg:col-span-2 space-y-4">
                             <div className="flex items-center justify-between">
                                 <h2 className="font-bold text-slate-900">Milestones</h2>
-                                {contract.status === 'Agreement' && (
+                                {contract.status === 'Agreement' && isClient && (
                                     <button disabled={!!actionLoading}
                                         onClick={() => act('fund', () => fundContract(id, contract.clientName))}
-                                        className="btn-primary text-sm disabled:opacity-60">
+                                        className="btn-primary text-sm disabled:opacity-60 bg-slate-900 text-white">
                                         <Lock size={13} /> {actionLoading === 'fund' ? 'Locking...' : 'Deposit & Lock Funds'}
                                     </button>
                                 )}
                             </div>
+
+                            {/* Freelancer Action Banner for New Offers */}
+                            {contract.status === 'Agreement' && isFreelancer && (
+                                <Card className="p-6 border-2 border-[#f5a623] bg-[#fff8ec]">
+                                    <div className="flex flex-col md:flex-row items-center gap-4 text-center md:text-left">
+                                        <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shrink-0 shadow-sm">
+                                            <PartyPopper size={24} className="text-[#f5a623]" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <h3 className="text-lg font-black text-slate-900">New Contract Offer!</h3>
+                                            <p className="text-sm text-slate-600 mt-1">Review the milestones below. Do you accept these terms?</p>
+                                        </div>
+                                        <div className="flex items-center gap-3 w-full md:w-auto mt-4 md:mt-0">
+                                            <button disabled={!!actionLoading}
+                                                onClick={() => act('decline', () => rejectContract(id, contract.freelancerName))}
+                                                className="btn-ghost text-slate-500 px-5 flex-1 md:flex-none">
+                                                Decline
+                                            </button>
+                                            <button disabled={!!actionLoading}
+                                                onClick={() => act('accept', () => acceptContract(id, contract.freelancerName))}
+                                                className="btn-primary flex items-center gap-2 flex-1 md:flex-none"
+                                                style={{ background: '#f5a623' }}>
+                                                <CheckCircle size={16} /> Accept Offer
+                                            </button>
+                                        </div>
+                                    </div>
+                                </Card>
+                            )}
 
                             {(contract.milestones || []).map(m => (
                                 <Card key={m.id} className="p-5">
@@ -240,19 +273,22 @@ export default function ContractPage() {
                                         </p>
                                     )}
 
-                                    {m.status === 'Pending' && contract.status !== 'Agreement' && (
+                                    {/* Submit Work — Freelancer only */}
+                                    {m.status === 'Pending' && isFreelancer && contract.status !== 'Agreement' && contract.status !== 'Rejected' && (
                                         <div className="mt-3 flex gap-2">
                                             <input value={evidence[m.id] || ''} onChange={e => setEvidence(p => ({ ...p, [m.id]: e.target.value }))}
                                                 placeholder="Evidence URL (GitHub, Figma, Loom...)" className="input flex-1 py-2 text-xs" />
                                             <button disabled={!!actionLoading}
                                                 onClick={() => act(`sub-${m.id}`, () => submitMilestone(id, m.id, evidence[m.id] || 'https://example.com/proof', contract.freelancerName))}
-                                                className="btn-primary text-xs px-4 py-2 disabled:opacity-60">
-                                                <Upload size={12} /> {actionLoading === `sub-${m.id}` ? '...' : 'Submit'}
+                                                className="btn-primary text-xs px-4 py-2 disabled:opacity-60"
+                                                style={{ background: '#f5a623' }}>
+                                                <Upload size={12} /> {actionLoading === `sub-${m.id}` ? '...' : 'Submit Work'}
                                             </button>
                                         </div>
                                     )}
 
-                                    {m.status === 'Submitted' && (
+                                    {/* Approve / Reject — Client only */}
+                                    {m.status === 'Submitted' && isClient && (
                                         <div className="mt-3 flex gap-2">
                                             <button disabled={!!actionLoading}
                                                 onClick={() => act(`app-${m.id}`, () => approveMilestone(id, m.id, m.amount, m.title, contract.clientName))}
@@ -265,6 +301,13 @@ export default function ContractPage() {
                                                 <AlertTriangle size={12} /> Reject
                                             </button>
                                         </div>
+                                    )}
+
+                                    {/* Awaiting review — shown to freelancer when submitted */}
+                                    {m.status === 'Submitted' && isFreelancer && (
+                                        <p className="mt-3 text-xs text-blue-600 font-semibold flex items-center gap-1.5">
+                                            <CheckCircle size={12} /> Submitted — awaiting client review
+                                        </p>
                                     )}
                                 </Card>
                             ))}
