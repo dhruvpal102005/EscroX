@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { Shield, Mail, Lock, User, Globe, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 const roles = [
     { value: 'client', label: '💼 Client', desc: 'I hire freelancers & fund escrow' },
@@ -26,20 +27,34 @@ export default function SignupPage() {
     }, [user, router]);
 
     const handleGoogle = async () => {
-        try { setError(''); setLoading(true); await loginWithGoogle(); }
-        catch { if (!user) setError('Google sign-up failed.'); }
-        finally { setLoading(false); }
+        try {
+            setError(''); setLoading(true);
+            await loginWithGoogle();
+            toast.success('Account created!');
+        } catch {
+            if (!user) {
+                toast.error('Google sign-up failed');
+                setError('Google sign-up failed.');
+            }
+        } finally { setLoading(false); }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!role) { setError('Please select a role.'); return; }
+        if (!role) {
+            toast.error('Please select a role');
+            setError('Please select a role.');
+            return;
+        }
         try {
             setError(''); setLoading(true);
             await signupWithEmail(form.email, form.password, form.name, role, form.country);
+            toast.success('Account created successfully!');
             // useEffect handles redirect
         } catch (err) {
-            setError(err.message?.includes('email-already-in-use') ? 'This email is already registered.' : 'Sign-up failed. Please try again.');
+            const msg = err.message?.includes('email-already-in-use') ? 'This email is already registered.' : 'Sign-up failed. Please try again.';
+            toast.error(msg);
+            setError(msg);
         } finally { setLoading(false); }
     };
 

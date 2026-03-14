@@ -4,8 +4,9 @@ import {
     onAuthStateChanged, signInWithPopup, signInWithEmailAndPassword,
     createUserWithEmailAndPassword, signOut, updateProfile
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db, googleProvider } from '@/lib/firebase';
+import { useAccount } from 'wagmi';
 
 const AuthContext = createContext(null);
 
@@ -13,14 +14,20 @@ export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
+    const { address, isConnected } = useAccount();
 
     useEffect(() => {
         const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
             if (firebaseUser) {
                 setUser(firebaseUser);
-                // Fetch Firestore profile
-                const snap = await getDoc(doc(db, 'users', firebaseUser.uid));
-                setProfile(snap.exists() ? snap.data() : null);
+                try {
+                    const ref = doc(db, 'users', firebaseUser.uid);
+                    const snap = await getDoc(ref);
+                    setProfile(snap.exists() ? snap.data() : null);
+                } catch (e) {
+                    console.error("Firestore user fetch error:", e);
+                    setProfile(null);
+                }
             } else {
                 setUser(null);
                 setProfile(null);
@@ -29,6 +36,21 @@ export function AuthProvider({ children }) {
         });
         return () => unsub();
     }, []);
+
+    // Sync wallet address to Firestore independently
+    useEffect(() => {
+        if (!user || !profile || !isConnected || !address) return;
+
+        if (profile.walletAddress !== address) {
+            const ref = doc(db, 'users', user.uid);
+            updateDoc(ref, {
+                walletAddress: address,
+                updatedAt: serverTimestamp()
+            }).then(() => {
+                setProfile(prev => ({ ...prev, walletAddress: address }));
+            }).catch(e => console.error("Wallet sync error:", e));
+        }
+    }, [user, profile, isConnected, address]);
 
     /** Persist or update user doc in Firestore */
     async function upsertUserDoc(firebaseUser, extra = {}) {

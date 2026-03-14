@@ -1,5 +1,7 @@
 import './globals.css';
 import { AuthProvider } from '@/context/AuthContext';
+import { Web3Provider } from '@/context/Web3Provider';
+import { Toaster } from 'react-hot-toast';
 
 export const metadata = {
     title: 'EscrowX — Programmable Cross-Border Escrow',
@@ -10,9 +12,12 @@ export default function RootLayout({ children }) {
     return (
         <html lang="en">
             <body>
-                <AuthProvider>
-                    {children}
-                </AuthProvider>
+                <Toaster position="bottom-right" toastOptions={{ duration: 4000 }} />
+                <Web3Provider>
+                    <AuthProvider>
+                        {children}
+                    </AuthProvider>
+                </Web3Provider>
             </body>
         </html>
     );

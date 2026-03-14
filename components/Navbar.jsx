@@ -4,6 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Shield, Menu, X, LogOut, ChevronDown } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
 
 const links = [
     { href: '/', label: 'Home' },
@@ -48,8 +49,10 @@ export default function Navbar() {
                     ))}
                 </div>
 
-                {/* Right: Auth */}
-                <div className="hidden md:flex items-center gap-3">
+                {/* Right: Auth & Web3 */}
+                <div className="hidden md:flex items-center gap-4">
+                    <ConnectButton showBalance={false} chainStatus="icon" />
+
                     {user ? (
                         <div className="relative">
                             <button onClick={() => setUserMenuOpen(!userMenuOpen)}
@@ -70,23 +73,23 @@ export default function Navbar() {
                             </button>
 
                             {userMenuOpen && (
-                                <div className="absolute right-0 top-full mt-2 w-48 card py-1.5 z-50">
-                                    <div className="px-4 py-2 border-b border-slate-100">
-                                        <p className="text-xs font-semibold text-slate-900 truncate">{user.email}</p>
-                                        <p className="text-[10px] text-slate-400 mt-0.5 capitalize">{profile?.country || ''}</p>
+                                <div className="absolute right-0 top-full mt-2 w-48 card py-1.5 z-50 shadow-xl border border-slate-100 bg-white rounded-xl">
+                                    <div className="px-4 py-3 border-b border-slate-100">
+                                        <p className="text-sm font-semibold text-slate-900 truncate">{user.email}</p>
+                                        <p className="text-xs text-slate-500 mt-0.5 capitalize">{profile?.country || ''}</p>
                                     </div>
                                     <button onClick={handleLogout}
-                                        className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors">
-                                        <LogOut size={14} /> Sign Out
+                                        className="w-full flex items-center gap-2.5 px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors rounded-b-xl">
+                                        <LogOut size={16} /> Sign Out
                                     </button>
                                 </div>
                             )}
                         </div>
                     ) : (
-                        <>
+                        <div className="flex gap-2">
                             <Link href="/login" className="btn-ghost text-sm">Sign In</Link>
                             <Link href="/signup" className="btn-primary text-sm">Get Started →</Link>
-                        </>
+                        </div>
                     )}
                 </div>
 
@@ -98,7 +101,7 @@ export default function Navbar() {
 
             {/* Mobile menu */}
             {mobileOpen && (
-                <div className="md:hidden bg-white border-t border-slate-100 px-6 py-4 space-y-1">
+                <div className="md:hidden bg-white border-t border-slate-100 px-6 py-4 space-y-1 shadow-lg rounded-b-2xl">
                     {links.map(({ href, label }) => (
                         <Link key={href} href={href} onClick={() => setMobileOpen(false)}
                             className={`block px-4 py-2.5 rounded-xl text-sm font-medium ${isActive(href) ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'
@@ -106,14 +109,20 @@ export default function Navbar() {
                             {label}
                         </Link>
                     ))}
-                    <div className="pt-2 border-t border-slate-100 mt-2">
+
+                    <div className="pt-4 mt-2 border-t border-slate-100 flex flex-col gap-3">
+                        {/* Mobile Connect Button Container */}
+                        <div className="flex justify-center w-full">
+                            <ConnectButton showBalance={false} chainStatus="icon" />
+                        </div>
+
                         {user ? (
-                            <button onClick={handleLogout} className="w-full flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm text-red-500 hover:bg-red-50">
-                                <LogOut size={14} /> Sign Out
+                            <button onClick={handleLogout} className="w-full flex justify-center items-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 transition-colors">
+                                <LogOut size={16} /> Sign Out
                             </button>
                         ) : (
                             <Link href="/login" onClick={() => setMobileOpen(false)}
-                                className="block px-4 py-2.5 rounded-xl text-sm font-semibold text-center btn-primary justify-center">
+                                className="block w-full px-4 py-3 rounded-xl text-sm font-semibold text-center btn-primary">
                                 Sign In
                             </Link>
                         )}

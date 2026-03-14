@@ -7,6 +7,7 @@ import AuthGuard from '@/components/AuthGuard';
 import { useAuth } from '@/context/AuthContext';
 import { createContract } from '@/lib/firestore';
 import { Plus, Trash2, ArrowLeft, Shield, Check, AlertCircle } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export default function NewContractPage() {
     const { user, profile } = useAuth();
@@ -50,9 +51,11 @@ export default function NewContractPage() {
                     title: m.title, amount: parseFloat(m.amount), order: i
                 })),
             });
+            toast.success('Escrow contract initialized successfully!');
             setSubmitted(true);
             setTimeout(() => router.push(`/contract/${id}`), 1500);
         } catch (err) {
+            toast.error('Failed to create contract');
             setError('Failed to create contract. Please check your Firebase config.');
         } finally { setLoading(false); }
     };

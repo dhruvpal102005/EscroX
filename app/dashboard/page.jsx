@@ -8,7 +8,7 @@ import AuthGuard from '@/components/AuthGuard';
 import { useAuth } from '@/context/AuthContext';
 import { getUserContracts } from '@/lib/firestore';
 import { getStatusColor } from '@/lib/store';
-import { TrendingUp, Lock, CheckCircle, Clock, ArrowRight, Plus, Globe } from 'lucide-react';
+import { TrendingUp, Lock, CheckCircle, Clock, ArrowRight, Plus, Globe, AlertTriangle } from 'lucide-react';
 
 export default function DashboardPage() {
     const { user } = useAuth();
@@ -16,10 +16,17 @@ export default function DashboardPage() {
     const [contracts, setContracts] = useState([]);
     const [loading, setLoading] = useState(true);
 
+    const [error, setError] = useState('');
+
     useEffect(() => {
         if (!user) return;
+        setLoading(true);
         getUserContracts(user.uid)
             .then(setContracts)
+            .catch(err => {
+                console.error("Dashboard fetch error:", err);
+                setError(err.message || "Failed to load contracts.");
+            })
             .finally(() => setLoading(false));
     }, [user]);
 
@@ -99,7 +106,17 @@ export default function DashboardPage() {
                     <div>
                         <h2 className="text-base font-bold text-slate-900 mb-4">Your Contracts</h2>
 
-                        {loading ? (
+                        {error ? (
+                            <Card className="p-8 border-red-200 bg-red-50 flex flex-col items-center text-center gap-2">
+                                <AlertTriangle className="text-red-500 mb-2" size={32} />
+                                <h3 className="font-bold text-red-900">Failed to load contracts</h3>
+                                <p className="text-red-600 text-sm max-w-sm">{error}</p>
+                                <p className="text-red-500 text-xs mt-2">Check your internet connection or Firebase permissions.</p>
+                                <button onClick={() => window.location.reload()} className="btn-primary mt-4 bg-red-600 hover:bg-red-700">
+                                    Retry Connection
+                                </button>
+                            </Card>
+                        ) : loading ? (
                             <div className="flex justify-center py-16">
                                 <div className="w-8 h-8 rounded-full border-4 border-t-transparent animate-spin"
                                     style={{ borderColor: '#f5a623', borderTopColor: 'transparent' }} />

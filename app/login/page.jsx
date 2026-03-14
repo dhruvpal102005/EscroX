@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { Shield, Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export default function LoginPage() {
     const { user, loginWithGoogle, loginWithEmail } = useAuth();
@@ -23,11 +24,15 @@ export default function LoginPage() {
         try {
             setError(''); setLoading(true);
             await loginWithGoogle();
+            toast.success('Welcome back!');
             // useEffect above handles redirect
         } catch (e) {
             // COOP warnings cause signInWithPopup to reject even on success.
             // Only show error if user is still null after the attempt.
-            if (!user) setError('Google sign-in failed. Please try again.');
+            if (!user) {
+                toast.error('Google sign-in failed');
+                setError('Google sign-in failed. Please try again.');
+            }
         } finally { setLoading(false); }
     };
 
@@ -36,8 +41,10 @@ export default function LoginPage() {
         try {
             setError(''); setLoading(true);
             await loginWithEmail(email, password);
+            toast.success('Welcome back!');
             // useEffect above handles redirect
         } catch (e) {
+            toast.error('Incorrect email or password');
             setError('Incorrect email or password.');
         } finally { setLoading(false); }
     };

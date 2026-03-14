@@ -14,6 +14,7 @@ import {
     Shield, CheckCircle, Upload, AlertTriangle,
     ArrowLeft, Lock, ExternalLink, User, ChevronRight
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 const iconMap = { shield: Shield, lock: Lock, upload: Upload, check: CheckCircle };
 
@@ -58,7 +59,18 @@ export default function ContractPage() {
 
     const act = async (key, fn) => {
         setActionLoading(key);
-        try { await fn(); } finally { setActionLoading(''); }
+        try {
+            await fn();
+            if (key === 'fund') toast.success('Funds locked safely in Escrow Vault');
+            else if (key.startsWith('sub-')) toast.success('Milestone submitted for review');
+            else if (key.startsWith('app-')) toast.success('Milestone approved & funds released!');
+            else if (key.startsWith('rej-')) toast.success('Milestone rejected');
+            else if (key === 'dispute') toast.success('Dispute raised. Platform notified.');
+        } catch (err) {
+            toast.error(err.message || 'Action failed. Please try again.');
+        } finally {
+            setActionLoading('');
+        }
     };
 
     return (
@@ -231,9 +243,14 @@ export default function ContractPage() {
                                                 <div className="w-6 h-6 rounded-full shrink-0 flex items-center justify-center bg-amber-50">
                                                     <Icon size={11} style={{ color: '#f5a623' }} />
                                                 </div>
-                                                <div>
+                                                <div className="flex-1">
                                                     <p className="text-xs text-slate-700 font-semibold leading-tight">{log.action}</p>
                                                     <p className="text-[10px] text-slate-400 mt-0.5">{log.actor}</p>
+                                                    {log.txHash && (
+                                                        <p className="text-[9px] font-mono text-slate-300 mt-1 truncate max-w-[120px]">
+                                                            hash: {log.txHash}
+                                                        </p>
+                                                    )}
                                                 </div>
                                             </div>
                                         );
