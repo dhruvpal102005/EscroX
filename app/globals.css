@@ -1,0 +1,164 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    html {
+        font-size: 17px;
+    }
+
+    body {
+        background-color: #ffffff;
+        color: #0f172a;
+        font-family: 'Inter', sans-serif;
+        -webkit-font-smoothing: antialiased;
+    }
+
+    * {
+        box-sizing: border-box;
+    }
+}
+
+@layer components {
+    .card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 20px;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06), 0 6px 20px rgba(0, 0, 0, 0.04);
+    }
+
+    .card-hover {
+        transition: all 0.2s ease;
+    }
+
+    .card-hover:hover {
+        box-shadow: 0 6px 28px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+        border-color: #cbd5e1;
+    }
+
+    .btn-primary {
+        background: #f5a623;
+        color: #ffffff;
+        font-weight: 700;
+        padding: 0.8rem 1.75rem;
+        border-radius: 999px;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 0.95rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .btn-primary:hover {
+        background: #e0951a;
+        box-shadow: 0 4px 20px rgba(245, 166, 35, 0.4);
+        transform: translateY(-1px);
+    }
+
+    .btn-outline {
+        background: transparent;
+        color: #0f172a;
+        font-weight: 600;
+        padding: 0.8rem 1.75rem;
+        border-radius: 999px;
+        border: 1.5px solid #0f172a;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 0.95rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .btn-outline:hover {
+        background: #0f172a;
+        color: #fff;
+    }
+
+    .btn-ghost {
+        background: rgba(0, 0, 0, 0.04);
+        color: #0f172a;
+        font-weight: 500;
+        padding: 0.65rem 1.4rem;
+        border-radius: 999px;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 0.9rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .btn-ghost:hover {
+        background: rgba(0, 0, 0, 0.08);
+    }
+
+    .badge {
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        padding: 0.25rem 0.8rem;
+        border-radius: 999px;
+        border: 1.5px solid;
+        white-space: nowrap;
+    }
+
+    .float-card {
+        background: #ffffff;
+        border-radius: 18px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.8);
+    }
+
+    .navbar {
+        background: rgba(255, 255, 255, 0.92);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .input {
+        width: 100%;
+        padding: 0.8rem 1.1rem;
+        border-radius: 12px;
+        border: 1.5px solid #e2e8f0;
+        background: #f8fafc;
+        color: #0f172a;
+        font-size: 0.925rem;
+        outline: none;
+        transition: border-color 0.2s;
+    }
+
+    .input:focus {
+        border-color: #f5a623;
+        background: #fff;
+    }
+
+    .input::placeholder {
+        color: #94a3b8;
+    }
+}
+
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f8fafc;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
