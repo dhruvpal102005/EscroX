@@ -1,10 +1,18 @@
-import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
+const { buildModule } = require("@nomicfoundation/hardhat-ignition/modules");
 
-export default buildModule("EscrowModule", (m) => {
+const EscrowModule = buildModule("EscrowModule", (m) => {
     // Pass the deployer address as the arbiter for now
     const arbiter = m.getAccount(0);
 
-    const escrow = m.contract("Escrow", [arbiter]);
+    // Initial price for Mock Aggregator: $2500 per ETH (with 8 decimals)
+    const initialPrice = 2500n * 10n ** 8n;
+    const mockAggregator = m.contract("MockV3Aggregator", [8, initialPrice]);
 
-    return { escrow };
+    const escrow = m.contract("Escrow", [arbiter, mockAggregator]);
+
+    return { escrow, mockAggregator };
 });
+
+module.exports = EscrowModule;
+
+

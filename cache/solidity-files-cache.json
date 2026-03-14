@@ -1,9 +1,9 @@
 {
   "_format": "hh-sol-cache-2",
   "files": {
-    "C:\\Users\\dhruv\\projects\\Escrow\\contracts\\Escrow.sol": {
-      "lastModificationDate": 1773481633752,
-      "contentHash": "ab10f4fe8a6c62a476f87649d38ab417",
+    "C:\\Users\\kkewa\\Downloads\\EscroX\\contracts\\Escrow.sol": {
+      "lastModificationDate": 1773488345905,
+      "contentHash": "c7fc7c8d68c89b76abfec8a4e9a09e53",
       "sourceName": "contracts/Escrow.sol",
       "solcConfig": {
         "version": "0.8.20",
@@ -34,7 +34,44 @@
         "^0.8.20"
       ],
       "artifacts": [
+        "AggregatorV3Interface",
         "Escrow"
+      ]
+    },
+    "C:\\Users\\kkewa\\Downloads\\EscroX\\contracts\\MockV3Aggregator.sol": {
+      "lastModificationDate": 1773488343885,
+      "contentHash": "dba786063079e43ea2df962cde9047da",
+      "sourceName": "contracts/MockV3Aggregator.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "evmVersion": "paris",
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "MockV3Aggregator"
       ]
     }
   }

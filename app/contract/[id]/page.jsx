@@ -44,6 +44,23 @@ export default function ContractPage() {
         return () => unsub();
     }, [id]);
 
+    const [inrPrice, setInrPrice] = useState(0);
+    const [showLocal, setShowLocal] = useState(false);
+
+    const fetchInrPrice = async () => {
+        try {
+            const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=inr');
+            const data = await res.json();
+            setInrPrice(data.ethereum.inr);
+        } catch (err) {
+            console.error("Failed to fetch INR price", err);
+        }
+    };
+
+    useEffect(() => {
+        fetchInrPrice();
+    }, []);
+
     if (loading) return (
         <AuthGuard><Navbar />
             <div className="min-h-screen bg-surface pt-16 flex items-center justify-center">
@@ -62,6 +79,11 @@ export default function ContractPage() {
     const currentStepIdx = statusFlow.indexOf(contract.status);
     const totalReleased = (contract.milestones || []).filter(m => m.status === 'Approved').reduce((s, m) => s + m.amount, 0);
     const totalLocked = contract.totalValue - totalReleased;
+    
+    // Estimate ETH based on USD total Value (assuming $2500 fallback)
+    const ethEquivalent = contract.totalValue / 2500; 
+    const inrValue = inrPrice ? (ethEquivalent * inrPrice) : 0;
+
 
     const act = async (key, fn) => {
         setActionLoading(key);
@@ -137,7 +159,18 @@ export default function ContractPage() {
                             </div>
                         </div>
                         <div className="flex gap-2 items-center">
+                            {inrPrice > 0 && (
+                                <button onClick={() => setShowLocal(!showLocal)} 
+                                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 bg-white hover:bg-slate-50 transition-colors">
+                                    <span className={showLocal ? 'text-slate-400' : 'text-blue-600'}>USD</span>
+                                    <div className="w-8 h-4 bg-slate-100 rounded-full relative">
+                                        <div className={`absolute top-0.5 w-3 h-3 rounded-full transition-all ${showLocal ? 'left-4.5 bg-blue-500' : 'left-0.5 bg-slate-400'}`} />
+                                    </div>
+                                    <span className={showLocal ? 'text-blue-600' : 'text-slate-400'}>INR</span>
+                                </button>
+                            )}
                             <span className={`badge ${getStatusColor(contract.status)}`}>{contract.status}</span>
+
                             {!['Disputed', 'Completed'].includes(contract.status) && (
                                 <button onClick={() => setDisputeModal(true)} className="btn-ghost text-red-500 text-xs border-red-200">
                                     <AlertTriangle size={12} /> Raise Dispute
@@ -243,15 +276,16 @@ export default function ContractPage() {
                                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Vault Status</h3>
                                 <div className="space-y-3">
                                     {[
-                                        { label: 'Total', value: `$${contract.totalValue?.toLocaleString()}`, color: '#0f172a' },
-                                        { label: 'Locked', value: `$${totalLocked.toLocaleString()}`, color: '#8b5cf6' },
-                                        { label: 'Released', value: `$${totalReleased.toLocaleString()}`, color: '#10b981' },
+                                        { label: 'Total', value: showLocal && inrPrice ? `₹${inrValue.toLocaleString('en-IN')}` : `$${contract.totalValue?.toLocaleString()}`, color: '#0f172a' },
+                                        { label: 'Locked', value: showLocal && inrPrice ? `₹${(inrValue * (totalLocked / contract.totalValue)).toLocaleString('en-IN')}` : `$${totalLocked.toLocaleString()}`, color: '#8b5cf6' },
+                                        { label: 'Released', value: showLocal && inrPrice ? `₹${(inrValue * (totalReleased / contract.totalValue)).toLocaleString('en-IN')}` : `$${totalReleased.toLocaleString()}`, color: '#10b981' },
                                     ].map(({ label, value, color }) => (
                                         <div key={label} className="flex justify-between items-center">
                                             <span className="text-sm text-slate-400">{label}</span>
                                             <span className="font-black text-sm" style={{ color }}>{value}</span>
                                         </div>
                                     ))}
+
                                     <div className="pt-2">
                                         <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                                             <div className="h-full rounded-full"
