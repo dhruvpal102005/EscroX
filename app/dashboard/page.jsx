@@ -166,8 +166,8 @@ function ClientDashboard({ contracts, totalValue, totalLocked, totalReleased }) 
                             <div className="space-y-3">
                                 {contracts.map((contract) => {
                                     const ms = contract.milestones || [];
-                                    const approvedCount = ms.filter(m => m.status === 'Approved').length;
-                                    const progress = ms.length ? Math.round((approvedCount / ms.length) * 100) : 0;
+                                    const releasedAmount = ms.filter(m => m.status === 'Approved').reduce((s, m) => s + (m.amount || 0), 0);
+                                    const progress = contract.totalValue ? Math.round((releasedAmount / contract.totalValue) * 100) : 0;
                                     return (
                                         <Link key={contract.id} href={`/contract/${contract.id}`}>
                                             <Card hover className="p-5">
@@ -207,7 +207,7 @@ function ClientDashboard({ contracts, totalValue, totalLocked, totalReleased }) 
                                                 </div>
                                                 <div>
                                                     <div className="flex justify-between text-xs text-slate-400 mb-1.5">
-                                                        <span>{approvedCount}/{ms.length} milestones done</span>
+                                                        <span>${releasedAmount.toLocaleString()} / ${contract.totalValue.toLocaleString()} released</span>
                                                         <span className="font-semibold text-slate-600">{progress}%</span>
                                                     </div>
                                                     <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
@@ -246,6 +246,59 @@ function FreelancerDashboard({ contracts, totalValue, totalLocked, totalReleased
         return s + released;
     });
 
+    const overallProgress = activeTotalValue > 0 ? Math.round((activeTotalReleased / activeTotalValue) * 100) : 0;
+    const completedContracts = activeContracts.filter(c => c.status === 'Completed').length;
+    const completionRate = activeContracts.length > 0 ? Math.round((completedContracts / activeContracts.length) * 100) : 0;
+
+    // ─── MONTHLY EARNINGS WAVE CHART ────────────────────────────────────────────
+    const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+    const currentYear = new Date().getFullYear();
+
+    // Build monthly totals from approved milestones
+    const monthlyEarnings = Array(12).fill(0);
+    for (const contract of contracts) {
+        for (const milestone of (contract.milestones || [])) {
+            if (milestone.status === 'Approved' && milestone.approvedAt) {
+                // Firestore timestamps have .toDate() method; plain dates are JS dates
+                const d = milestone.approvedAt?.toDate ? milestone.approvedAt.toDate() : new Date(milestone.approvedAt);
+                if (d.getFullYear() === currentYear) {
+                    monthlyEarnings[d.getMonth()] += (milestone.amount || 0);
+                }
+            }
+        }
+    }
+
+    // Find peak month
+    const peakValue = Math.max(...monthlyEarnings, 1);
+    const peakMonthIdx = monthlyEarnings.indexOf(Math.max(...monthlyEarnings));
+
+    // Generate SVG path points — map monthly earnings to y coords (120 = bottom, 10 = top)
+    const SVG_W = 400;
+    const SVG_H = 120;
+    const points = monthlyEarnings.map((val, i) => ({
+        x: (i / 11) * SVG_W,
+        y: SVG_H - 10 - ((val / peakValue) * (SVG_H - 20)),
+    }));
+
+    // Build a smooth cubic bezier path through the points
+    const buildPath = (pts) => {
+        if (pts.length < 2) return '';
+        let d = `M${pts[0].x},${pts[0].y}`;
+        for (let i = 0; i < pts.length - 1; i++) {
+            const cp1x = pts[i].x + (pts[i + 1].x - pts[i].x) / 3;
+            const cp1y = pts[i].y;
+            const cp2x = pts[i + 1].x - (pts[i + 1].x - pts[i].x) / 3;
+            const cp2y = pts[i + 1].y;
+            d += ` C${cp1x},${cp1y} ${cp2x},${cp2y} ${pts[i + 1].x},${pts[i + 1].y}`;
+        }
+        return d;
+    };
+
+    const linePath = buildPath(points);
+    const areaPath = linePath ? `${linePath} L${SVG_W},${SVG_H} L0,${SVG_H} Z` : '';
+    const peakPoint = points[peakMonthIdx];
+    // ─────────────────────────────────────────────────────────────────────────────
+
     return (
         <AuthGuard>
             <Navbar />
@@ -279,12 +332,12 @@ function FreelancerDashboard({ contracts, totalValue, totalLocked, totalReleased
                                         <ArrowRight size={18} className="text-slate-400 rotate-[-45deg]" />
                                     </div>
                                     <div className="flex-1 flex flex-col items-center justify-center relative -mt-4">
-                                        {/* CSS Doughnut Chart */}
+                                        {/* CSS Doughnut Chart — real overallProgress */}
                                         <div className="w-32 h-32 rounded-full flex items-center justify-center relative"
-                                            style={{ background: 'conic-gradient(#f5a623 0% 90%, #1e293b 90% 100%)' }}>
+                                            style={{ background: `conic-gradient(#f5a623 0% ${overallProgress}%, #1e293b ${overallProgress}% 100%)` }}>
                                             <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-inner relative z-10 flex-col">
-                                                <span className="text-xl font-black text-slate-900">90%</span>
-                                                <span className="text-[9px] text-slate-400 font-bold uppercase">Success</span>
+                                                <span className="text-xl font-black text-slate-900">{overallProgress}%</span>
+                                                <span className="text-[9px] text-slate-400 font-bold uppercase">Released</span>
                                             </div>
                                         </div>
                                     </div>
@@ -293,21 +346,21 @@ function FreelancerDashboard({ contracts, totalValue, totalLocked, totalReleased
                                         <div className="flex-1 bg-slate-50 rounded-xl p-3 flex items-center gap-3">
                                             <div className="text-[#f5a623]"><TrendingUp size={16} /></div>
                                             <div>
-                                                <div className="text-sm font-bold text-slate-900">90%</div>
-                                                <div className="text-[10px] text-slate-400">Respond rate</div>
+                                                <div className="text-sm font-bold text-slate-900">{completionRate}%</div>
+                                                <div className="text-[10px] text-slate-400">Completion rate</div>
                                             </div>
                                         </div>
                                         <div className="flex-1 bg-slate-50 rounded-xl p-3 flex items-center gap-3">
                                             <div className="text-[#f5a623]"><CheckCircle size={16} /></div>
                                             <div>
                                                 <div className="text-sm font-bold text-slate-900">{activeContracts.length}</div>
-                                                <div className="text-[10px] text-slate-400">Total contracts</div>
+                                                <div className="text-[10px] text-slate-400">Active contracts</div>
                                             </div>
                                         </div>
                                     </div>
                                 </Card>
 
-                                {/* Earning Reports Card (Figma reference matching) */}
+                                {/* Earning Reports Card — real monthly data */}
                                 <Card className="p-6 h-72 flex flex-col pt-5 overflow-hidden relative group">
                                     <div className="flex justify-between items-center z-10 relative">
                                         <h3 className="font-bold text-slate-900 text-lg">Earning reports</h3>
@@ -315,40 +368,59 @@ function FreelancerDashboard({ contracts, totalValue, totalLocked, totalReleased
                                     </div>
 
                                     <div className="mt-4 z-10 relative">
-                                        <p className="text-xs text-slate-400 font-medium mb-1">Income in {new Date().getFullYear()}</p>
+                                        <p className="text-xs text-slate-400 font-medium mb-1">Income in {currentYear}</p>
                                         <div className="flex items-end gap-3">
                                             <h2 className="text-4xl font-black text-slate-900 tracking-tight">${activeTotalReleased.toLocaleString()}</h2>
-                                            <span className="flex items-center text-xs font-bold text-[#f5a623] mb-1.5 px-2 py-0.5 bg-[#fff8ec] rounded-md">
-                                                + 2.3% <TrendingUp size={12} className="ml-1" />
-                                            </span>
+                                            {activeTotalReleased > 0 && (
+                                                <span className="flex items-center text-xs font-bold text-[#10b981] mb-1.5 px-2 py-0.5 bg-[#ecfdf5] rounded-md">
+                                                    Active <TrendingUp size={12} className="ml-1" />
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
 
-                                    {/* Mocked Wave Area Chart */}
+                                    {/* Dynamic SVG Wave Chart */}
                                     <div className="absolute bottom-0 left-0 right-0 h-32 opacity-80 group-hover:opacity-100 transition-opacity">
-                                        <svg viewBox="0 0 400 120" preserveAspectRatio="none" className="w-full h-full">
-                                            <defs>
-                                                <linearGradient id="purpleGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                                                    <stop offset="0%" stopColor="#f5a623" stopOpacity="0.4" />
-                                                    <stop offset="100%" stopColor="#f5a623" stopOpacity="0.01" />
-                                                </linearGradient>
-                                            </defs>
-                                            {/* Decorative grid lines */}
-                                            <path d="M0 20 H400 M0 60 H400 M0 100 H400" stroke="#f1f5f9" strokeWidth="1" fill="none" />
-                                            {/* The wave */}
-                                            <path d="M0,80 C40,40 80,100 120,60 C160,20 200,90 240,40 C280,-10 320,80 360,50 C380,35 400,60 400,60 L400,120 L0,120 Z" fill="url(#purpleGradient)" />
-                                            <path d="M0,80 C40,40 80,100 120,60 C160,20 200,90 240,40 C280,-10 320,80 360,50 C380,35 400,60 400,60" fill="none" stroke="#f5a623" strokeWidth="3" />
-                                            {/* Peak marker */}
-                                            <circle cx="280" cy="15" r="4" fill="#f5a623" stroke="#fff" strokeWidth="2" />
-                                        </svg>
-                                        {/* Mock Tooltip on peak */}
-                                        <div className="absolute top-[10px] left-[70%] -translate-x-1/2 bg-slate-900 text-white text-[9px] font-bold py-1 px-2 rounded cursor-default shadow-lg">
-                                            $2,450
-                                            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 border-l-4 border-l-transparent border-r-4 border-r-transparent border-t-4 border-t-slate-900"></div>
-                                        </div>
+                                        {activeTotalReleased > 0 ? (
+                                            <svg viewBox={`0 0 ${SVG_W} ${SVG_H}`} preserveAspectRatio="none" className="w-full h-full">
+                                                <defs>
+                                                    <linearGradient id="earningsGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                                        <stop offset="0%" stopColor="#f5a623" stopOpacity="0.4" />
+                                                        <stop offset="100%" stopColor="#f5a623" stopOpacity="0.01" />
+                                                    </linearGradient>
+                                                </defs>
+                                                <path d="M0 20 H400 M0 60 H400 M0 100 H400" stroke="#f1f5f9" strokeWidth="1" fill="none" />
+                                                {areaPath && <path d={areaPath} fill="url(#earningsGradient)" />}
+                                                {linePath && <path d={linePath} fill="none" stroke="#f5a623" strokeWidth="3" />}
+                                                {peakValue > 0 && <circle cx={peakPoint.x} cy={peakPoint.y} r="4" fill="#f5a623" stroke="#fff" strokeWidth="2" />}
+                                            </svg>
+                                        ) : (
+                                            // Empty state wave
+                                            <svg viewBox="0 0 400 120" preserveAspectRatio="none" className="w-full h-full opacity-30">
+                                                <path d="M0 100 C100,100 200,100 400,100 L400,120 L0,120 Z" fill="#f5a623" opacity="0.2" />
+                                                <path d="M0 100 C100,100 200,100 400,100" fill="none" stroke="#f5a623" strokeWidth="2" strokeDasharray="6 4" />
+                                            </svg>
+                                        )}
+                                        {/* Tooltip on the peak month */}
+                                        {activeTotalReleased > 0 && peakValue > 0 && (
+                                            <div className="absolute bg-slate-900 text-white text-[9px] font-bold py-1 px-2 rounded cursor-default shadow-lg"
+                                                style={{
+                                                    top: `${Math.max(2, (peakPoint.y / SVG_H) * 100 - 15)}%`,
+                                                    left: `${Math.min(80, (peakPoint.x / SVG_W) * 100)}%`,
+                                                    transform: 'translateX(-50%)'
+                                                }}>
+                                                ${monthlyEarnings[peakMonthIdx].toLocaleString()} · {MONTHS[peakMonthIdx]}
+                                                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 border-l-4 border-l-transparent border-r-4 border-r-transparent border-t-4 border-t-slate-900"></div>
+                                            </div>
+                                        )}
+                                        {activeTotalReleased === 0 && (
+                                            <div className="absolute inset-0 flex items-center justify-center">
+                                                <p className="text-[10px] text-slate-400 font-semibold">No earnings yet — complete a milestone!</p>
+                                            </div>
+                                        )}
                                     </div>
-                                    <div className="absolute bottom-4 left-6 flex gap-4 text-[9px] text-slate-400 font-bold z-10 w-full">
-                                        <span>JAN</span><span>FEB</span><span>MAR</span><span>APR</span><span>MAY</span><span>JUN</span>
+                                    <div className="absolute bottom-4 left-6 flex gap-3 text-[9px] text-slate-400 font-bold z-10">
+                                        {MONTHS.map(m => <span key={m}>{m}</span>)}
                                     </div>
                                 </Card>
 
@@ -374,8 +446,8 @@ function FreelancerDashboard({ contracts, totalValue, totalLocked, totalReleased
                                             <tbody className="divide-y divide-slate-100">
                                                 {activeContracts.map(contract => {
                                                     const ms = contract.milestones || [];
-                                                    const approvedCount = ms.filter(m => m.status === 'Approved').length;
-                                                    const progress = ms.length ? Math.round((approvedCount / ms.length) * 100) : 0;
+                                                    const releasedAmount = ms.filter(m => m.status === 'Approved').reduce((s, m) => s + (m.amount || 0), 0);
+                                                    const progress = contract.totalValue ? Math.round((releasedAmount / contract.totalValue) * 100) : 0;
 
                                                     // Generate a pseudo-random avatar background color based on name
                                                     const avatarColors = ['#fecdd3', '#fed7aa', '#fde047', '#bbf7d0', '#bfdbfe', '#e9d5ff'];

@@ -53,12 +53,12 @@ export async function POST(req) {
         }
 
         const completion = await openai.chat.completions.create({
-            model: model || "meta-llama/Meta-Llama-3-8B-Instruct",
+            model: model || "NousResearch/Hermes-2-Pro-Llama-3-8B",
             max_tokens: 4096,
             messages: [
                 {
                     role: "system",
-                    content: "You are an expert technical escrow manager. Your job is to analyze a client's project prompt and structure it into a milestone-based freelance contract. Extract the title, deadlines, and a breakdown of milestones with their exact costs. Return the output exactly matching the requested JSON schema. Do not include markdown formatting or explanations."
+                    content: "You are an expert technical escrow manager. Analyze the client prompt and structure it into a milestone-based project contract. Output MUST exactly match the predefined JSON schema.\n\nRULES:\n1. MUST create short, meaningful titles for each milestone.\n2. Do NOT split the budget equally. Distribute it based on the realistic difficulty of each phase.\n3. The 'amount' property MUST be a valid number (e.g., 25.50 or 50).\n4. The sum of all milestone 'amount' values MUST exactly equal the total budget requested in the prompt. Do not exceed or undercut the budget.\n\nExample for a 100 USD 4-milestone project:\n\"milestones\": [\n { \"title\": \"Planning\", \"amount\": 15 },\n { \"title\": \"Design\", \"amount\": 25 },\n { \"title\": \"Development\", \"amount\": 40 },\n { \"title\": \"Testing\", \"amount\": 20 }\n]"
                 },
                 {
                     role: "user",

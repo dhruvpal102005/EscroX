@@ -10,12 +10,12 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { Plus, Trash2, ArrowLeft, Shield, Check, AlertCircle, Sparkles, X, Wallet, IndianRupee } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useWriteContract, useAccount, useSwitchChain, usePublicClient } from 'wagmi';
-import { parseEther, decodeEventLog } from 'viem';
+import { parseEther } from 'viem';
 import { localhost } from 'wagmi/chains';
 import { ESCROW_ADDRESS, ESCROW_ABI } from '@/lib/contracts';
 
 export default function NewContractPage() {
-    const { user } = useAuth();
+    const { user, profile } = useAuth();
     const router = useRouter();
     const { isConnected, chainId } = useAccount();
     const { writeContractAsync } = useWriteContract();
@@ -40,30 +40,50 @@ export default function NewContractPage() {
     const [aiGenerating, setAiGenerating] = useState(false);
     const [aiError, setAiError] = useState('');
 
+    // Auto-fill client name and country from logged-in user's profile
+    useEffect(() => {
+        if (profile || user) {
+            setForm(f => ({
+                ...f,
+                clientName: f.clientName || profile?.displayName || user?.displayName || '',
+                clientCountry: f.clientCountry || profile?.country || ''
+            }));
+        }
+    }, [profile, user]);
+
     const addMs = () => setForm(f => ({ ...f, milestones: [...f.milestones, { title: '', amount: '', order: f.milestones.length }] }));
     const removeMs = (i) => setForm(f => ({ ...f, milestones: f.milestones.filter((_, idx) => idx !== i) }));
     const updateMs = (i, key, value) => setForm(f => {
         const ms = [...f.milestones]; ms[i] = { ...ms[i], [key]: value }; return { ...f, milestones: ms };
     });
 
-    const [ethPrice, setEthPrice] = useState(0);
+    // ── Multi-currency ETH rates ──────────────────────────────────────────
+    const [ethRates, setEthRates] = useState({});
     const totalValue = form.milestones.reduce((s, m) => s + (parseFloat(m.amount) || 0), 0);
-    const totalWei = ethPrice ? parseEther(((totalValue / ethPrice) * 1.005).toFixed(18)) : 0n;
+    const currentRate = ethRates[form.currency] || 0;
+    const totalWei = currentRate ? parseEther(((totalValue / currentRate) * 1.005).toFixed(18)) : 0n;
     const totalInrPaise = Math.round(totalValue * 83 * 100);
 
     const fetchPrice = async () => {
         try {
-            const res = await fetch('https://api.coinbase.com/v2/prices/ETH-USD/spot');
+            const res = await fetch('https://api.coinbase.com/v2/exchange-rates?currency=ETH');
             const data = await res.json();
-            setEthPrice(parseFloat(data.data.amount));
+            const rates = data.data.rates;
+            setEthRates({
+                USD: parseFloat(rates.USD),
+                EUR: parseFloat(rates.EUR),
+                GBP: parseFloat(rates.GBP),
+                INR: parseFloat(rates.INR),
+                USDC: parseFloat(rates.USDC),
+            });
         } catch {
-            setEthPrice(2500);
+            setEthRates({ USD: 2500, EUR: 2300, GBP: 1900, INR: 210000, USDC: 2500 });
         }
     };
 
     useEffect(() => {
         fetchPrice();
-        const interval = setInterval(fetchPrice, 30000);
+        const interval = setInterval(fetchPrice, 60000);
         return () => clearInterval(interval);
     }, []);
 
@@ -94,7 +114,7 @@ export default function NewContractPage() {
                 deadline: data.deadline || f.deadline,
                 currency: data.currency || f.currency,
                 milestones: data.milestones?.length ? data.milestones.map((m, i) => ({
-                    title: m.title, amount: m.amount || 0, order: i
+                    title: m.title || '', amount: m.amount !== undefined ? m.amount.toString() : '', order: i
                 })) : f.milestones
             }));
             toast('Contract magically drafted! ✨', { icon: '🤖' });
@@ -107,7 +127,7 @@ export default function NewContractPage() {
         }
     };
 
-    // ── Shared Firestore save helper ──────────────────────────────────────
+    // ── Shared Firestore save helper (subcollections) ─────────────────────
     const saveToFirestore = async ({ txHash, onChain, onChainId, pm }) => {
         const contractRef = await addDoc(collection(db, 'contracts'), {
             clientUid: user.uid,
@@ -146,7 +166,7 @@ export default function NewContractPage() {
 
         await addDoc(collection(db, 'contracts', cid, 'auditLog'), {
             action: pm === 'wallet'
-                ? `Escrow funded on-chain via Web3 wallet. $${totalValue} USD locked.`
+                ? `Escrow funded on-chain via Web3 wallet. ${totalValue} ${form.currency} locked.`
                 : `Fiat payment via Razorpay. Escrow funded.`,
             actor: `${form.clientName || 'Client'} (Client)`,
             icon: 'shield',
@@ -172,6 +192,14 @@ export default function NewContractPage() {
                 await switchChainAsync({ chainId: localhost.id });
             }
 
+            // Read nextProjectId before creating so we know what ID we'll get
+            const nextId = await publicClient.readContract({
+                address: ESCROW_ADDRESS,
+                abi: ESCROW_ABI,
+                functionName: 'nextProjectId',
+            });
+            const onChainProjectId = Number(nextId);
+
             const msTitles = form.milestones.map(m => m.title || 'Untitled Milestone');
             const msAmountsUSD = form.milestones.map(m => BigInt(Math.round(parseFloat(m.amount) * 100)));
 
@@ -188,12 +216,8 @@ export default function NewContractPage() {
             toast.loading('Mining transaction on-chain...', { id: 'tx' });
             const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
-            let onChainProjectId = 0;
-            for (const log of receipt.logs) {
-                try {
-                    const decoded = decodeEventLog({ abi: ESCROW_ABI, data: log.data, topics: log.topics });
-                    if (decoded.eventName === 'ProjectCreated') { onChainProjectId = Number(decoded.args.projectId); break; }
-                } catch { }
+            if (receipt.status === 'reverted') {
+                throw new Error('Transaction reverted. Check wallet balance and freelancer address.');
             }
 
             toast.loading('Saving to database...', { id: 'tx' });
@@ -205,7 +229,7 @@ export default function NewContractPage() {
         } catch (err) {
             console.error(err);
             toast.error(err.shortMessage || err.message || 'Failed to create contract', { id: 'tx' });
-            setError(err.message || 'Failed to create contract.');
+            setError(err.shortMessage || err.message || 'Failed to create contract.');
         } finally {
             setLoading(false);
         }
@@ -303,6 +327,9 @@ export default function NewContractPage() {
     };
 
     const handleSubmit = paymentMethod === 'razorpay' ? handleRazorpaySubmit : handleWalletSubmit;
+
+    // ── Currency symbol helper ────────────────────────────────────────────
+    const currencySymbol = { USD: '$', EUR: '€', GBP: '£', INR: '₹', USDC: '₮' }[form.currency] || '$';
 
     if (submitted) return (
         <AuthGuard>
@@ -427,7 +454,7 @@ export default function NewContractPage() {
                                         <input required className="input flex-1 py-2" placeholder="Milestone title"
                                             value={m.title} onChange={e => updateMs(i, 'title', e.target.value)} />
                                         <div className="flex items-center gap-1 border border-slate-200 rounded-xl px-3 bg-slate-50">
-                                            <span className="text-slate-400 text-sm">{form.currency === 'USDC' ? '₮' : '$'}</span>
+                                            <span className="text-slate-400 text-sm">{currencySymbol}</span>
                                             <input required type="number" min="1" className="w-24 py-2.5 bg-transparent text-sm text-slate-900 outline-none"
                                                 placeholder="0" value={m.amount} onChange={e => updateMs(i, 'amount', e.target.value)} />
                                         </div>
@@ -446,9 +473,9 @@ export default function NewContractPage() {
                                         {form.currency} {totalValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                                     </span>
                                 </div>
-                                {ethPrice > 0 && paymentMethod === 'wallet' && (
+                                {currentRate > 0 && paymentMethod === 'wallet' && totalValue > 0 && (
                                     <p className="text-xs text-blue-500 font-medium">
-                                        ≈ {((totalValue / ethPrice) * 1.005).toFixed(4)} ETH (@ ${ethPrice.toLocaleString()}/ETH)
+                                        ≈ {((totalValue / currentRate) * 1.005).toFixed(4)} ETH (@ {currencySymbol}{currentRate.toLocaleString()}/ETH)
                                     </p>
                                 )}
                                 {paymentMethod === 'razorpay' && totalValue > 0 && (
