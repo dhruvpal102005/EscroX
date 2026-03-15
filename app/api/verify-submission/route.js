@@ -130,7 +130,7 @@ function analyzeGenericUrl(url, type) {
 
 export async function POST(req) {
     try {
-        const { evidenceUrl, milestoneTitle, contractTitle } = await req.json();
+        const { evidenceUrl, evidenceImageUrl, milestoneTitle, contractTitle } = await req.json();
 
         if (!evidenceUrl) {
             return NextResponse.json({ error: 'Evidence URL is required' }, { status: 400 });
@@ -213,6 +213,7 @@ RULES:
                     content: `MILESTONE: "${milestoneTitle}"
 CONTRACT: "${contractTitle || 'Not specified'}"
 EVIDENCE URL: ${evidenceUrl}
+OPTIONAL SCREENSHOT URL: ${evidenceImageUrl || 'None provided'}
 ${metadataContext}
 
 Analyze this submission and return your verification JSON.`
