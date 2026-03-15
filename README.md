@@ -53,6 +53,45 @@ EscroX follows a modern full-stack architecture combining Web2 speed with Web3 s
 
 ---
 
+## 🖼️ Visual Gallery
+
+Explore the EscroX interface and its key features.
+
+<table align="center">
+  <tr>
+    <td align="center">
+      <img src="public/screenshots/dashboard.png" width="400px" alt="Dashboard Analytics"/><br/>
+      <b>Personalized Dashboard</b><br/>
+      <i>Real-time insights and project tracking.</i>
+    </td>
+    <td align="center">
+      <img src="public/screenshots/new_contract.png" width="400px" alt="Create Contract"/><br/>
+      <b>Smart Contract Creation</b><br/>
+      <i>Detail-oriented setup with autonomous milestones.</i>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="public/screenshots/contract_view_funded.png" width="400px" alt="Active Contract"/><br/>
+      <b>Vault Management (Funded)</b><br/>
+      <i>Secure ETH locking with milestone stepper.</i>
+    </td>
+    <td align="center">
+      <img src="public/screenshots/contract_view_approved.png" width="400px" alt="Approved Milestone"/><br/>
+      <b>Evidence & Approval</b><br/>
+      <i>One-click payouts upon verified work.</i>
+    </td>
+  </tr>
+</table>
+
+<p align="center">
+  <img src="public/screenshots/api_docs.png" width="820px" alt="API Documentation"/><br/>
+  <b>Escrow-as-a-Service Portal</b><br/>
+  <i>Seamlessly integrate our engine into your platform.</i>
+</p>
+
+---
+
 ## 🔌 API Documentation (v1)
 
 EscroX provides a unified API for external platforms (e.g., Fiverr, Upwork) to secure their payments.
