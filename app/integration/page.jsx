@@ -14,6 +14,7 @@ const API_KEY = 'ESCROX_HACK_2026';
 const SECTIONS = [
     { id: 'intro', label: 'Introduction', icon: Book },
     { id: 'auth', label: 'Authentication', icon: Lock },
+    { id: 'marketplace', label: 'Marketplace Integration', icon: Briefcase },
     { id: 'create', label: 'Create Escrow', icon: Box },
     { id: 'approve', label: 'Approve Milestone', icon: Zap },
     { id: 'status', label: 'Get Status', icon: Database },
@@ -103,13 +104,13 @@ export default function IntegrationPage() {
                             <button
                                 key={s.id}
                                 onClick={() => scrollTo(s.id)}
-                                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-semibold transition-all ${activeSection === s.id
+                                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-semibold text-left transition-all ${activeSection === s.id
                                     ? 'bg-blue-600 text-white shadow-lg shadow-blue-200'
                                     : 'text-slate-500 hover:bg-slate-200/50 hover:text-slate-900'
                                     }`}
                             >
-                                <s.icon size={16} />
-                                {s.label}
+                                <s.icon size={16} className="shrink-0" />
+                                <span>{s.label}</span>
                             </button>
                         ))}
                     </nav>
@@ -142,7 +143,7 @@ export default function IntegrationPage() {
                         <span className="text-blue-600">Finance Engine.</span>
                     </h1>
                     <p className="text-xl text-slate-600 leading-relaxed max-w-3xl font-medium">
-                        EscroX exposes its autonomous milestone-based escrow engine as a standard REST API.
+                        EscrowX exposes its autonomous milestone-based escrow engine as a standard REST API.
                         Build your own marketplace, freelance platform, or gig economy app with secure, automated fund auditing.
                     </p>
 
@@ -191,6 +192,94 @@ curl -H "x-api-key: YOUR_API_KEY" \\
      -X GET https://escrox.vercel.app/api/v1/escrow/status/{id}
                         `.trim()
                     }} />
+                </section>
+
+                <hr className="border-slate-100 mb-24" />
+
+                {/* Marketplace Integration Section */}
+                <section id="marketplace" className="scroll-mt-32 mb-24">
+                    <div className="flex items-center gap-2 mb-4">
+                        <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                            <Briefcase className="text-blue-600" size={16} />
+                        </div>
+                        <h2 className="text-3xl font-black text-slate-900 tracking-tight">Marketplace Integration Blueprint</h2>
+                    </div>
+                    <p className="text-slate-600 mb-10 leading-relaxed">
+                        Learn how to integrate EscroX to power your own Fiverr, Upwork, or freelance platform.
+                        By offloading the financial logic to our programmable engine, you eliminate the risk of payment fraud and complex smart contract management.
+                    </p>
+
+                    <div className="bg-slate-50 border border-slate-100 rounded-3xl p-8 mb-12">
+                        <h4 className="text-sm font-bold text-slate-900 mb-8 flex items-center gap-2">
+                            Full Lifecycle Integration Flow
+                        </h4>
+
+                        <div className="space-y-8 relative">
+                            {/* Vertical line connector */}
+                            <div className="absolute left-[19px] top-6 bottom-6 w-[2px] bg-slate-200" />
+
+                            {[
+                                {
+                                    step: '01',
+                                    title: 'Initialize Escrow',
+                                    desc: 'When a buyer purchases a service on your platform, call /create to lock funds with a specific freelancer.',
+                                    code: 'POST /v1/escrow/create'
+                                },
+                                {
+                                    step: '02',
+                                    title: 'Direct to Vault',
+                                    desc: 'Redirect the buyer to the verified EscroX Vault URL returned by the API to fund the contract securely.',
+                                    code: '/contract/{id}'
+                                },
+                                {
+                                    step: '03',
+                                    title: 'Receive Updates',
+                                    desc: 'Listen for webhooks or poll the /status endpoint to know when funds are locked and work can begin.',
+                                    code: 'GET /v1/escrow/status/{id}'
+                                },
+                                {
+                                    step: '04',
+                                    title: 'Automated Disbursement',
+                                    desc: "Once work is approved on your platform, trigger /approve to release funds to the freelancer's wallet.",
+                                    code: 'POST /v1/escrow/approve'
+                                }
+                            ].map((s, i) => (
+                                <div key={i} className="flex gap-6 relative z-10">
+                                    <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-lg shadow-blue-100">
+                                        {s.step}
+                                    </div>
+                                    <div className="flex-1 pt-1">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <h5 className="font-bold text-slate-900">{s.title}</h5>
+                                            <span className="font-mono text-[10px] bg-white px-2 py-0.5 rounded border border-slate-200 text-blue-600 font-bold">{s.code}</span>
+                                        </div>
+                                        <p className="text-xs text-slate-500 leading-relaxed">{s.desc}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="p-8 rounded-3xl bg-blue-900 text-white">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
+                                <Zap className="text-blue-400" size={20} />
+                            </div>
+                            <h4 className="text-lg font-bold">Why power your Gig Economy app with EscroX?</h4>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            {[
+                                { title: 'Legal Safety', desc: 'We handle the financial custody, reducing your regulatory overhead.' },
+                                { title: 'Global Payouts', desc: 'Direct support for crypto & fiat means you can pay devs anywhere.' },
+                                { title: 'Verified Proof', desc: 'Our Al-verification and audit logs provide immutable proof of work.' }
+                            ].map((v, i) => (
+                                <div key={i}>
+                                    <h5 className="font-bold text-sm mb-2 text-blue-200">{v.title}</h5>
+                                    <p className="text-xs text-blue-100/70 leading-relaxed">{v.desc}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
                 </section>
 
                 <hr className="border-slate-100 mb-24" />
