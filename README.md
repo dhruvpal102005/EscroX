@@ -26,6 +26,8 @@ Traditional escrow services are slow, expensive, and rely on centralized interme
 
 ## 🏗 Project Architecture
 
+![Global Escrow System Architecture](public/assets/system-architecture.png)
+
 EscroX follows a modern full-stack architecture combining Web2 speed with Web3 security:
 
 ### 1. Smart Contracts (The Trust Layer)
@@ -96,10 +98,6 @@ EscroX provides a unified API for external platforms (e.g., Fiverr, Upwork) to s
 
 ### Endpoints
 
-### 5. Advanced Features
-- **AI Drafter**: Uses `@google/genai` to parse natural language prompts like *"I need a $2000 logo in 2 weeks"* into a structured 3-milestone contract.
-- **Fiat Bridge**: A simulated Razorpay integration allows clients to pay in INR, which "mints" virtual escrow tokens for freelancers to redeem.
-
 #### 1. Create Escrow
 `POST /api/v1/escrow/create`
 - **Body**: `clientData`, `freelancerData`, `contractData`.
@@ -113,6 +111,14 @@ EscroX provides a unified API for external platforms (e.g., Fiverr, Upwork) to s
 #### 3. Get Status
 `GET /api/v1/escrow/status/{id}`
 - **Returns**: Real-time contract status and milestone progress.
+
+---
+
+## 💎 Advanced Features & Innovation
+
+- **AI Contract Drafter**: Uses `@google/genai` to parse natural language prompts like *"I need a $2000 logo in 2 weeks"* into a structured 3-milestone contract.
+- **Fiat Bridge (BaaS)**: A simulated Razorpay integration allows clients to pay in INR, which "mints" virtual escrow tokens for freelancers to redeem.
+- **Global Compliance**: Standardized audit trails that provide "Proof of Delivery" across jurisdictions.
 
 ---
 
