@@ -32,7 +32,7 @@ export default function Navbar() {
             <div className="max-w-7xl mx-auto flex items-center justify-between h-16">
                 {/* Logo */}
                 <Link href="/" className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: '#f5a623' }}>
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: '#ffb43b' }}>
                         <Shield size={18} className="text-white" />
                     </div>
                     <span className="font-extrabold text-lg tracking-tight text-slate-900">EscrowX</span>
@@ -61,7 +61,7 @@ export default function Navbar() {
                                     <img src={user.photoURL} alt="" className="w-7 h-7 rounded-full" referrerPolicy="no-referrer" />
                                 ) : (
                                     <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold"
-                                        style={{ background: '#f5a623' }}>
+                                        style={{ background: '#ffb43b' }}>
                                         {(user.displayName || user.email || 'U')[0].toUpperCase()}
                                     </div>
                                 )}

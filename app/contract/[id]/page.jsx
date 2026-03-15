@@ -14,7 +14,7 @@ import { getStatusColor, statusFlow } from '@/lib/store';
 import {
     Shield, CheckCircle, Upload, AlertTriangle,
     ArrowLeft, Lock, ExternalLink, User, ChevronRight, Wallet, PartyPopper, XCircle, IndianRupee,
-    Star, Banknote, Send, X, BadgeCheck, Bot, Download, MessageSquare, Info
+    Star, Banknote, Send, X, BadgeCheck, Bot, Download, MessageSquare, Info, PackageCheck, Truck, Wrench, RefreshCw
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useWriteContract, useAccount, useSwitchChain, usePublicClient } from 'wagmi';
@@ -59,6 +59,26 @@ export default function ContractPage() {
     const [payoutLoading, setPayoutLoading] = useState(false);
     const [payoutSuccess, setPayoutSuccess] = useState(null);
 
+    // Product tracking state (per milestone)
+    const [selectedCourier, setSelectedCourier] = useState({});  // milestoneId -> slug
+    const [trackingInput, setTrackingInput] = useState({});      // milestoneId -> trackingId string
+    const [shipmentData, setShipmentData] = useState({});        // milestoneId -> tracking result
+    const [trackingLoading, setTrackingLoading] = useState({});  // milestoneId -> bool
+
+    // Couriers list (slug + display)
+    const COURIERS = [
+        { slug: 'ekart',       label: 'Ekart',        flag: '🇮🇳' },
+        { slug: 'india-post',  label: 'India Post',   flag: '🇮🇳' },
+        { slug: 'delhivery',   label: 'Delhivery',    flag: '🇮🇳' },
+        { slug: 'bluedart',    label: 'BlueDart',     flag: '🇮🇳' },
+        { slug: 'dtdc',        label: 'DTDC',         flag: '🇮🇳' },
+        { slug: 'xpressbees',  label: 'XpressBees',   flag: '🇮🇳' },
+        { slug: 'dhl',         label: 'DHL Express',  flag: '🌍' },
+        { slug: 'fedex',       label: 'FedEx',        flag: '🌍' },
+        { slug: 'ups',         label: 'UPS',          flag: '🌍' },
+        { slug: 'aramex',      label: 'Aramex',       flag: '🌍' },
+    ];
+
     // Submission confirmation state
     const [confirmSubmit, setConfirmSubmit] = useState(null); // { milestoneId, evidenceUrl, evidenceImageUrl, milestoneTitle }
     const [rejectionModal, setRejectionModal] = useState(null); // { id, title, amount }
@@ -89,7 +109,7 @@ export default function ContractPage() {
     // Load existing reviews for this contract
     useEffect(() => {
         if (!id) return;
-        getContractReviews(id).then(setReviews).catch(() => {});
+        getContractReviews(id).then(setReviews).catch(() => { });
     }, [id]);
 
     const [ethRates, setEthRates] = useState({});
@@ -100,14 +120,26 @@ export default function ContractPage() {
             .then(r => r.json())
             .then(d => {
                 if (d?.ethereum) setEthRates({ USD: d.ethereum.usd, EUR: d.ethereum.eur, GBP: d.ethereum.gbp, INR: d.ethereum.inr });
-            }).catch(() => {});
+            }).catch(() => { });
     }, []);
+
+    // Auto-fetch tracking for submitted product milestones on load
+    // Must be here (before early returns) to satisfy Rules of Hooks
+    useEffect(() => {
+        if (!contract || contract.workType !== 'product') return;
+        (contract.milestones || []).forEach(m => {
+            if ((m.status === 'Submitted' || m.status === 'Approved') && m.trackingId && m.courier) {
+                fetchTracking(m.id, m.trackingId, m.courier);
+            }
+        });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [contract?.id]);
 
     if (loading) return (
         <AuthGuard><Navbar />
             <div className="min-h-screen bg-surface pt-16 flex items-center justify-center">
                 <div className="w-8 h-8 rounded-full border-4 border-t-transparent animate-spin"
-                    style={{ borderColor: '#f5a623', borderTopColor: 'transparent' }} />
+                    style={{ borderColor: '#ffb43b', borderTopColor: 'transparent' }} />
             </div>
         </AuthGuard>
     );
@@ -255,6 +287,26 @@ export default function ContractPage() {
         }
     };
 
+    // ── Fetch shipment tracking (product milestones) ──────────────────────────
+    const fetchTracking = async (milestoneId, trackingId, courier) => {
+        if (!trackingId || !courier) return;
+        setTrackingLoading(p => ({ ...p, [milestoneId]: true }));
+        try {
+            const res = await fetch('/api/track-shipment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ trackingId, courier }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Tracking failed');
+            setShipmentData(p => ({ ...p, [milestoneId]: data }));
+        } catch (err) {
+            toast.error('Could not fetch tracking: ' + err.message);
+        } finally {
+            setTrackingLoading(p => ({ ...p, [milestoneId]: false }));
+        }
+    };
+
     const handleSubmitReview = async () => {
         if (!myRating) return toast.error('Please select a star rating.');
         setReviewSubmitting(true);
@@ -283,8 +335,8 @@ export default function ContractPage() {
                     onMouseLeave={() => interactive && setHoverRating(0)}
                     className={interactive ? 'cursor-pointer' : 'cursor-default'}>
                     <Star size={18}
-                        fill={(interactive ? (hoverRating || myRating) >= n : count >= n) ? '#f5a623' : 'none'}
-                        stroke={(interactive ? (hoverRating || myRating) >= n : count >= n) ? '#f5a623' : '#cbd5e1'}
+                        fill={(interactive ? (hoverRating || myRating) >= n : count >= n) ? '#ffb43b' : 'none'}
+                        stroke={(interactive ? (hoverRating || myRating) >= n : count >= n) ? '#ffb43b' : '#cbd5e1'}
                     />
                 </button>
             ))}
@@ -330,6 +382,16 @@ export default function ContractPage() {
                                         <IndianRupee size={9} /> Fiat Funded
                                     </span>
                                 )}
+                            {/* Work type badge */}
+                            {contract.workType === 'product' ? (
+                                <span className="flex items-center gap-1 text-[10px] font-bold text-white bg-orange-500 px-2 py-0.5 rounded-full">
+                                    <PackageCheck size={9} /> Product
+                                </span>
+                            ) : (
+                                <span className="flex items-center gap-1 text-[10px] font-bold text-white bg-violet-500 px-2 py-0.5 rounded-full">
+                                    <Wrench size={9} /> Service
+                                </span>
+                            )}
                             </div>
                             <div className="flex items-center gap-4 text-[12px] text-slate-400">
                                 <span className="flex items-center gap-1.5">
@@ -376,23 +438,23 @@ export default function ContractPage() {
                                     <div key={stage} className="flex items-center flex-1 last:flex-none">
                                         <div className="flex flex-col items-center min-w-0">
                                             <div className="w-10 h-10 rounded-full flex items-center justify-center text-base mb-2 transition-all"
-                                                style={isDone ? { background: '#f5a623', boxShadow: '0 0 0 4px #fef3c7' }
-                                                    : isActive ? { background: '#f5a623', boxShadow: '0 0 0 4px #fef3c7' }
+                                                style={isDone ? { background: '#ffb43b', boxShadow: '0 0 0 4px #fef3c7' }
+                                                    : isActive ? { background: '#ffb43b', boxShadow: '0 0 0 4px #fef3c7' }
                                                         : { background: '#f1f5f9' }}>
                                                 {isDone
                                                     ? <CheckCircle size={18} color="#fff" />
                                                     : <span className="text-[13px]">{stepIcons[stage] || '⚪'}</span>}
                                             </div>
-                                            <span className={`text-[10px] font-black uppercase tracking-wider whitespace-nowrap ${isActive ? 'text-[#f5a623]' : isDone ? 'text-[#f5a623]' : 'text-slate-300'}`}>
+                                            <span className={`text-[10px] font-black uppercase tracking-wider whitespace-nowrap ${isActive ? 'text-[#ffb43b]' : isDone ? 'text-[#ffb43b]' : 'text-slate-300'}`}>
                                                 {stage}
                                             </span>
-                                            <span className={`text-[9px] font-medium mt-0.5 ${isActive ? 'text-[#f5a623]' : isDone ? 'text-emerald-500' : 'text-slate-300'}`}>
+                                            <span className={`text-[9px] font-medium mt-0.5 ${isActive ? 'text-[#ffb43b]' : isDone ? 'text-emerald-500' : 'text-slate-300'}`}>
                                                 {isDone ? 'COMPLETED' : isActive ? 'IN PROGRESS' : 'PENDING'}
                                             </span>
                                         </div>
                                         {i < statusFlow.length - 1 && (
                                             <div className="flex-1 h-[3px] mx-2 mb-6 rounded-full"
-                                                style={{ background: isDone ? '#f5a623' : '#e2e8f0' }} />
+                                                style={{ background: isDone ? '#ffb43b' : '#e2e8f0' }} />
                                         )}
                                     </div>
                                 );
@@ -407,10 +469,10 @@ export default function ContractPage() {
 
                             {/* Freelancer accept/decline banner */}
                             {contract.status === 'Agreement' && isFreelancer && (
-                                <div className="rounded-[20px] p-6 border-2 border-[#f5a623] bg-[#fff8ec]">
+                                <div className="rounded-[20px] p-6 border-2 border-[#ffb43b] bg-[#fff8ec]">
                                     <div className="flex flex-col md:flex-row items-center gap-4">
                                         <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shrink-0 shadow-sm">
-                                            <PartyPopper size={24} className="text-[#f5a623]" />
+                                            <PartyPopper size={24} className="text-[#ffb43b]" />
                                         </div>
                                         <div className="flex-1 text-center md:text-left">
                                             <h3 className="text-lg font-black text-slate-900">New Contract Offer!</h3>
@@ -425,11 +487,12 @@ export default function ContractPage() {
                                             <button disabled={!!actionLoading}
                                                 onClick={() => act('accept', () => acceptContract(id, contract.freelancerName))}
                                                 className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-bold text-white transition-all"
-                                                style={{ background: '#f5a623' }}>
+                                                style={{ background: '#ffb43b' }}>
                                                 <CheckCircle size={15} /> Accept Offer
                                             </button>
                                         </div>
                                     </div>
+
                                 </div>
                             )}
 
@@ -517,7 +580,7 @@ export default function ContractPage() {
                                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-100">
                                         <div className="p-5 border-b border-slate-100" style={{ background: 'linear-gradient(to right, #fff8ec, #fff)' }}>
                                             <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #f5a623, #e09000)' }}>
+                                                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #ffb43b, #e09000)' }}>
                                                     <Upload size={20} className="text-white" />
                                                 </div>
                                                 <div>
@@ -567,7 +630,7 @@ export default function ContractPage() {
                                                         act(`sub-${milestoneId}`, () => submitMilestone(id, milestoneId, evidenceUrl, evidenceImageUrl, contract.freelancerName, aiResult));
                                                     }}
                                                     className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-60 transition-all"
-                                                    style={{ background: 'linear-gradient(135deg, #f5a623, #e09000)' }}>
+                                                    style={{ background: 'linear-gradient(135deg, #ffb43b, #e09000)' }}>
                                                     {actionLoading ? (
                                                         <><div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" /> Submitting...</>
                                                     ) : (
@@ -588,7 +651,7 @@ export default function ContractPage() {
                                             <button disabled={!!actionLoading}
                                                 onClick={() => act('fund', () => fundContract(id, contract.clientName))}
                                                 className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white transition-all disabled:opacity-60"
-                                                style={{ background: '#f5a623' }}>
+                                                style={{ background: '#ffb43b' }}>
                                                 <Lock size={13} /> {actionLoading === 'fund' ? 'Locking...' : 'Deposit & Lock Funds'}
                                             </button>
                                         )}
@@ -637,6 +700,18 @@ export default function ContractPage() {
                                                                     <img src={m.evidenceImageUrl} alt="Submission Screenshot" className="w-full h-auto object-cover hover:scale-105 transition-transform cursor-pointer" onClick={() => window.open(m.evidenceImageUrl, '_blank')} />
                                                                 </div>
                                                             )}
+                                                            {/* PRODUCT: shipment tracker card */}
+                                                            {contract.workType === 'product' && m.trackingId && (m.status === 'Submitted' || m.status === 'Approved') && (
+                                                                <div className="mt-3 w-full">
+                                                                    <ShipmentTrackerCard
+                                                                        milestone={m}
+                                                                        COURIERS={COURIERS}
+                                                                        data={shipmentData[m.id]}
+                                                                        loading={trackingLoading[m.id]}
+                                                                        onRefresh={() => fetchTracking(m.id, m.trackingId, m.courier)}
+                                                                    />
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </div>
 
@@ -661,9 +736,8 @@ export default function ContractPage() {
                                                                 <Bot size={12} className="text-white" />
                                                             </div>
                                                             <span className="text-xs font-bold text-slate-700">AI Verification</span>
-                                                            <span className={`ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                                                                m.aiConfidence === 'high' ? 'bg-green-100 text-green-700' : m.aiConfidence === 'medium' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
-                                                            }`}>
+                                                            <span className={`ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full ${m.aiConfidence === 'high' ? 'bg-green-100 text-green-700' : m.aiConfidence === 'medium' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
+                                                                }`}>
                                                                 {m.aiConfidence === 'high' ? '✓ High Confidence' : m.aiConfidence === 'medium' ? '⚠ Medium' : '⚠ Low'}
                                                             </span>
                                                         </div>
@@ -682,32 +756,72 @@ export default function ContractPage() {
 
                                                 {/* Submit Work — Freelancer only */}
                                                 {(m.status === 'Pending' || m.status === 'Rejected') && isFreelancer && contract.status !== 'Agreement' && contract.status !== 'Rejected' && !isLocked && (
-                                                    <div className="mt-4 pt-4 border-t border-slate-100 space-y-3">
-                                                        <div className="flex gap-2">
-                                                            <div className="flex-1 space-y-2">
-                                                                <input value={evidence[m.id] || ''} onChange={e => setEvidence(p => ({ ...p, [m.id]: e.target.value }))}
-                                                                    placeholder="Compulsory: Evidence URL (GitHub, Figma, Loom...)" className="input w-full py-2 text-xs" />
-                                                                <input value={evidenceImage[m.id] || ''} onChange={e => setEvidenceImage(p => ({ ...p, [m.id]: e.target.value }))}
-                                                                    placeholder="Optional: Screenshot/Image URL" className="input w-full py-2 text-xs" />
+                                                    <div className="mt-4 pt-4 border-t border-slate-100 flex gap-2">
+                                                        {(contract.workType || 'service') === 'service' ? (
+                                                            <div className="flex-1 space-y-3">
+                                                                <div className="flex gap-2">
+                                                                    <div className="flex-1 space-y-2">
+                                                                        <input value={evidence[m.id] || ''} onChange={e => setEvidence(p => ({ ...p, [m.id]: e.target.value }))}
+                                                                            placeholder="Compulsory: Evidence URL (GitHub, Figma, Loom...)" className="input w-full py-2 text-xs" />
+                                                                        <input value={evidenceImage[m.id] || ''} onChange={e => setEvidenceImage(p => ({ ...p, [m.id]: e.target.value }))}
+                                                                            placeholder="Optional: Screenshot/Image URL" className="input w-full py-2 text-xs" />
+                                                                    </div>
+                                                                    <button disabled={!!actionLoading}
+                                                                        onClick={() => {
+                                                                            const url = evidence[m.id]?.trim();
+                                                                            const imgUrl = evidenceImage[m.id]?.trim() || null;
+                                                                            if (!url) { toast.error('Please enter an evidence URL'); return; }
+                                                                            setConfirmSubmit({
+                                                                                milestoneId: m.id,
+                                                                                evidenceUrl: url,
+                                                                                evidenceImageUrl: imgUrl,
+                                                                                milestoneTitle: m.title
+                                                                            });
+                                                                        }}
+                                                                        className="flex items-center justify-center gap-1.5 px-6 rounded-xl text-xs font-bold text-white disabled:opacity-60 transition-all self-stretch"
+                                                                        style={{ background: '#f5a623' }}>
+                                                                        <Upload size={14} /> {actionLoading === `sub-${m.id}` ? '...' : 'Submit Work'}
+                                                                    </button>
+                                                                </div>
+                                                                <p className="text-[10px] text-slate-400">Ensure the evidence URL is accessible. Screenshots help with faster manual review.</p>
                                                             </div>
-                                                            <button disabled={!!actionLoading}
-                                                                onClick={() => {
-                                                                    const url = evidence[m.id]?.trim();
-                                                                    const imgUrl = evidenceImage[m.id]?.trim() || null;
-                                                                    if (!url) { toast.error('Please enter an evidence URL'); return; }
-                                                                    setConfirmSubmit({
-                                                                        milestoneId: m.id,
-                                                                        evidenceUrl: url,
-                                                                        evidenceImageUrl: imgUrl,
-                                                                        milestoneTitle: m.title
-                                                                    });
-                                                                }}
-                                                                className="flex items-center justify-center gap-1.5 px-6 rounded-xl text-xs font-bold text-white disabled:opacity-60 transition-all self-stretch"
-                                                                style={{ background: '#f5a623' }}>
-                                                                <Upload size={14} /> {actionLoading === `sub-${m.id}` ? '...' : 'Submit Work'}
-                                                            </button>
-                                                        </div>
-                                                        <p className="text-[10px] text-slate-400">Ensure the evidence URL is accessible. Screenshots help with faster manual review.</p>
+                                                        ) : (
+                                                            <div className="flex gap-2 w-full">
+                                                                <select
+                                                                    value={selectedCourier[m.id] || ''}
+                                                                    onChange={e => setSelectedCourier(p => ({ ...p, [m.id]: e.target.value }))}
+                                                                    className="input py-2 text-xs rounded-xl"
+                                                                    style={{ minWidth: 0, flex: 1 }}>
+                                                                    <option value="">Select Courier…</option>
+                                                                    {COURIERS.map(c => (
+                                                                        <option key={c.slug} value={c.slug}>
+                                                                            {c.flag} {c.label}
+                                                                        </option>
+                                                                    ))}
+                                                                </select>
+                                                                <input
+                                                                    value={trackingInput[m.id] || ''}
+                                                                    onChange={e => setTrackingInput(p => ({ ...p, [m.id]: e.target.value }))}
+                                                                    placeholder="Tracking ID"
+                                                                    className="input py-2 text-xs rounded-xl"
+                                                                    style={{ flex: 1 }} />
+                                                                <button
+                                                                    disabled={!!actionLoading || !selectedCourier[m.id] || !trackingInput[m.id]}
+                                                                    onClick={() => act(`sub-${m.id}`, () => submitMilestone(
+                                                                        id, m.id,
+                                                                        trackingInput[m.id],
+                                                                        null, // No evidenceImageUrl for products
+                                                                        contract.freelancerName,
+                                                                        'product',
+                                                                        selectedCourier[m.id]
+                                                                    ))}
+                                                                    className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white disabled:opacity-60 transition-all"
+                                                                    style={{ background: '#f97316' }}>
+                                                                    <Truck size={13} />
+                                                                    {actionLoading === `sub-${m.id}` ? '...' : 'Submit Tracking ID'}
+                                                                </button>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 )}
 
@@ -736,9 +850,17 @@ export default function ContractPage() {
                                                 )}
 
                                                 {m.status === 'Submitted' && isFreelancer && (
-                                                    <p className="mt-3 text-xs text-amber-600 font-semibold flex items-center gap-1.5">
-                                                        <CheckCircle size={12} /> Submitted — awaiting client review
-                                                    </p>
+                                                    <div className="mt-3">
+                                                        <p className="text-xs text-amber-600 font-semibold flex items-center gap-1.5">
+                                                            <CheckCircle size={12} /> Submitted — awaiting client review
+                                                        </p>
+                                                        {contract.workType === 'product' && m.trackingId && (
+                                                            <p className="text-[11px] text-slate-400 flex items-center gap-1.5 pl-0.5 mt-1">
+                                                                <Truck size={11} />
+                                                                {COURIERS.find(c => c.slug === m.courier)?.flag} {COURIERS.find(c => c.slug === m.courier)?.label || m.courier} · <span className="font-mono">{m.trackingId}</span>
+                                                            </p>
+                                                        )}
+                                                    </div>
                                                 )}
                                             </div>
                                         );
@@ -761,7 +883,7 @@ export default function ContractPage() {
                                             <div key={log.id || i} className="flex gap-3 items-start">
                                                 <div className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center"
                                                     style={{ background: '#fff8ec', border: '2px solid #fef3c7' }}>
-                                                    <Icon size={12} style={{ color: '#f5a623' }} />
+                                                    <Icon size={12} style={{ color: '#ffb43b' }} />
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-start justify-between gap-2">
@@ -795,7 +917,7 @@ export default function ContractPage() {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="bg-white rounded-[20px] border border-slate-100 shadow-sm p-6">
                                             <div className="flex items-center gap-2 mb-4">
-                                                <Star size={16} fill="#f5a623" stroke="#f5a623" />
+                                                <Star size={16} fill="#ffb43b" stroke="#ffb43b" />
                                                 <h3 className="font-black text-slate-900">{alreadyReviewed ? 'Your Review' : `Rate ${isClient ? contract.freelancerName : contract.clientName}`}</h3>
                                             </div>
                                             {alreadyReviewed ? (
@@ -810,10 +932,10 @@ export default function ContractPage() {
                                                     {renderStars(myRating, true)}
                                                     <textarea value={reviewComment} onChange={e => setReviewComment(e.target.value)}
                                                         placeholder="Share your experience (optional)..." rows={3}
-                                                        className="w-full mt-3 px-4 py-3 rounded-xl border border-slate-200 text-sm text-slate-700 focus:ring-2 focus:ring-[#f5a623] outline-none resize-none" />
+                                                        className="w-full mt-3 px-4 py-3 rounded-xl border border-slate-200 text-sm text-slate-700 focus:ring-2 focus:ring-[#ffb43b] outline-none resize-none" />
                                                     <button onClick={handleSubmitReview} disabled={!myRating || reviewSubmitting}
                                                         className="mt-3 w-full py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-50 transition-all"
-                                                        style={{ background: '#f5a623' }}>
+                                                        style={{ background: '#ffb43b' }}>
                                                         {reviewSubmitting ? 'Submitting...' : 'Submit Review'}
                                                     </button>
                                                 </>
@@ -821,7 +943,7 @@ export default function ContractPage() {
                                         </div>
                                         <div className="bg-white rounded-[20px] border border-slate-100 shadow-sm p-6">
                                             <div className="flex items-center gap-2 mb-4">
-                                                <Star size={16} fill="#f5a623" stroke="#f5a623" />
+                                                <Star size={16} fill="#ffb43b" stroke="#ffb43b" />
                                                 <h3 className="font-black text-slate-900">{isClient ? contract.freelancerName : contract.clientName}'s Review</h3>
                                             </div>
                                             {otherReview ? (
@@ -847,7 +969,7 @@ export default function ContractPage() {
 
                             {/* Vault Status */}
                             <div className="rounded-[20px] p-6 relative overflow-hidden text-white"
-                                style={{ background: 'linear-gradient(135deg, #f5a623 0%, #e8961a 100%)' }}>
+                                style={{ background: 'linear-gradient(135deg, #ffb43b 0%, #e8961a 100%)' }}>
                                 <div className="absolute top-0 right-0 w-32 h-32 rounded-full bg-white/10 -mr-8 -mt-8" />
                                 <div className="flex items-center justify-between mb-4 relative z-10">
                                     <div className="flex items-center gap-2">
@@ -1081,5 +1203,102 @@ export default function ContractPage() {
                 )}
             </div>
         </AuthGuard>
+    );
+}
+
+// ── Shipment Tracker Card ──────────────────────────────────────────────────────
+function ShipmentTrackerCard({ milestone, COURIERS, data, loading, onRefresh }) {
+    const courierLabel = COURIERS.find(c => c.slug === milestone.courier)?.label || milestone.courier;
+    const courierFlag  = COURIERS.find(c => c.slug === milestone.courier)?.flag  || '📦';
+
+    const statusColors = {
+        'Order Placed':     { bg: 'bg-slate-100',  text: 'text-slate-600',  dot: 'bg-slate-400'  },
+        'Picked Up':        { bg: 'bg-blue-100',   text: 'text-blue-700',   dot: 'bg-blue-500'   },
+        'In Transit':       { bg: 'bg-amber-100',  text: 'text-amber-700',  dot: 'bg-amber-500'  },
+        'Out for Delivery': { bg: 'bg-orange-100', text: 'text-orange-700', dot: 'bg-orange-500' },
+        'Delivered':        { bg: 'bg-green-100',  text: 'text-green-700',  dot: 'bg-green-500'  },
+        'Exception':        { bg: 'bg-red-100',    text: 'text-red-700',    dot: 'bg-red-500'    },
+    };
+
+    const sc = statusColors[data?.status] || statusColors['In Transit'];
+
+    return (
+        <div className="mt-2 rounded-xl border border-orange-200 bg-orange-50/60 overflow-hidden">
+            {/* Header row */}
+            <div className="flex items-center justify-between px-3 py-2 bg-orange-100/80 border-b border-orange-200">
+                <div className="flex items-center gap-2">
+                    <span className="text-sm">{courierFlag}</span>
+                    <span className="text-xs font-bold text-orange-800">{courierLabel}</span>
+                    <span className="text-[10px] font-mono text-orange-600 bg-white px-1.5 py-0.5 rounded-md border border-orange-200">
+                        {milestone.trackingId}
+                    </span>
+                </div>
+                <button onClick={onRefresh} disabled={loading}
+                    className="flex items-center gap-1 text-[10px] text-orange-600 font-semibold hover:text-orange-800 disabled:opacity-60">
+                    <RefreshCw size={10} className={loading ? 'animate-spin' : ''} />
+                    {loading ? 'Fetching…' : 'Refresh'}
+                </button>
+            </div>
+
+            {loading && !data ? (
+                <div className="p-4 flex items-center gap-2 text-xs text-slate-400">
+                    <div className="w-3 h-3 rounded-full border-2 border-orange-300 border-t-transparent animate-spin" />
+                    Fetching tracking data…
+                </div>
+            ) : data ? (
+                <div className="p-3 space-y-3">
+                    {/* Status + Location */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${sc.bg} ${sc.text}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${sc.dot}`} />
+                            {data.status}
+                        </span>
+                        {data.location && (
+                            <span className="text-xs text-slate-500">📍 {data.location}</span>
+                        )}
+                        {data.estimatedDelivery && data.estimatedDelivery !== 'N/A' && (
+                            <span className="text-xs text-green-700 font-semibold ml-auto">
+                                Est. delivery: {data.estimatedDelivery}
+                            </span>
+                        )}
+                    </div>
+
+                    {/* Event timeline */}
+                    {data.events?.length > 0 && (
+                        <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                            {data.events.map((ev, i) => (
+                                <div key={i} className="flex items-start gap-2">
+                                    <div className="flex flex-col items-center pt-0.5">
+                                        <div className={`w-2 h-2 rounded-full shrink-0 ${i === 0 ? sc.dot : 'bg-slate-200'}`} />
+                                        {i < data.events.length - 1 && (
+                                            <div className="w-px flex-1 bg-slate-200 mt-0.5" style={{ minHeight: 10 }} />
+                                        )}
+                                    </div>
+                                    <div className="pb-1.5">
+                                        <p className={`text-[11px] font-semibold ${i === 0 ? sc.text : 'text-slate-600'}`}>
+                                            {ev.status}
+                                        </p>
+                                        {ev.location && (
+                                            <p className="text-[10px] text-slate-400">{ev.location}</p>
+                                        )}
+                                        <p className="text-[10px] text-slate-300 mt-0.5">{ev.date}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {data.isSimulated && (
+                        <p className="text-[9px] text-slate-300 italic">
+                            ⚠ Demo mode — add TRACKINGMORE_API_KEY to .env.local for live data
+                        </p>
+                    )}
+                </div>
+            ) : (
+                <div className="p-3 text-xs text-slate-400">
+                    Click <strong>Refresh</strong> to load shipment status.
+                </div>
+            )}
+        </div>
     );
 }

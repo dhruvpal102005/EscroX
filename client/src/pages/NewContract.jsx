@@ -87,7 +87,7 @@ const NewContract = () => {
                             {form.milestones.map((m, i) => (
                                 <div key={i} className="flex items-center gap-3">
                                     <div className="w-6 h-6 rounded-full shrink-0 flex items-center justify-center text-xs font-bold text-white"
-                                        style={{ background: '#f5a623' }}>{i + 1}</div>
+                                        style={{ background: '#ffb43b' }}>{i + 1}</div>
                                     <input required className="input flex-1 py-2" placeholder="Milestone title" value={m.title}
                                         onChange={e => updateMilestone(i, 'title', e.target.value)} />
                                     <div className="flex items-center gap-1 border border-slate-200 rounded-xl px-3 bg-slate-50">

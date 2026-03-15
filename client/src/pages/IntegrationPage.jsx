@@ -17,7 +17,7 @@ const endpoints = [
   ]
 }` },
     {
-        method: 'PATCH', path: '/api/v1/escrow/:id/fund', color: '#f5a623', bg: '#fff8ec',
+        method: 'PATCH', path: '/api/v1/escrow/:id/fund', color: '#ffb43b', bg: '#fff8ec',
         desc: 'Lock funds into the escrow vault after collecting payment from client.',
         body: `{ "transactionId": "txn_abc123" }`
     },
@@ -55,7 +55,7 @@ const IntegrationPage = () => {
                 {/* Steps */}
                 <Card className="p-6 mb-8">
                     <h2 className="font-bold text-slate-900 mb-5 flex items-center gap-2">
-                        <Shield size={16} style={{ color: '#f5a623' }} /> Integration Flow
+                        <Shield size={16} style={{ color: '#ffb43b' }} /> Integration Flow
                     </h2>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         {[
@@ -64,7 +64,7 @@ const IntegrationPage = () => {
                             { step: '3', title: 'Autonomous Release', desc: 'When milestone is approved, this engine fires the disbursement. Your platform receives a webhook.' },
                         ].map(({ step, title, desc }) => (
                             <div key={step} className="p-4 rounded-2xl bg-surface border border-slate-100">
-                                <div className="text-2xl font-black mb-3" style={{ color: '#f5a623' }}>{step}</div>
+                                <div className="text-2xl font-black mb-3" style={{ color: '#ffb43b' }}>{step}</div>
                                 <h3 className="font-bold text-slate-900 text-sm mb-1.5">{title}</h3>
                                 <p className="text-xs text-slate-500 leading-relaxed">{desc}</p>
                             </div>

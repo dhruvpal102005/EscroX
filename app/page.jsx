@@ -11,7 +11,7 @@ const steps = [
 ];
 
 const features = [
-    { icon: Lock, color: '#f5a623', bg: '#fff8ec', title: 'Autonomous Vault', desc: 'Funds locked in a transparent ledger — no intermediary can touch them.' },
+    { icon: Lock, color: '#ffb43b', bg: '#fff8ec', title: 'Autonomous Vault', desc: 'Funds locked in a transparent ledger — no intermediary can touch them.' },
     { icon: Globe, color: '#3b54f6', bg: '#eef0ff', title: 'Cross-Border Ready', desc: 'Works globally. Standardised proof of completion across jurisdictions.' },
     { icon: Check, color: '#10b981', bg: '#ecfdf5', title: 'Evidence-Based Release', desc: 'Payment triggers only when verified work evidence is submitted & approved.' },
     { icon: Zap, color: '#8b5cf6', bg: '#f5f3ff', title: 'Marketplace API', desc: 'One POST call from any marketplace to initialise a programmable escrow.' },
@@ -34,7 +34,7 @@ export default function HomePage() {
 
                         <h1 className="text-5xl md:text-6xl font-black tracking-tight leading-[1.05] mb-6 text-slate-900">
                             Autonomous<br />
-                            <span style={{ color: '#f5a623' }}>Escrow</span> Engine<br />
+                            <span style={{ color: '#ffb43b' }}>Escrow</span> Engine<br />
                             for Global Work.
                         </h1>
 
@@ -70,7 +70,7 @@ export default function HomePage() {
 
                         {/* Squiggle */}
                         <svg className="absolute top-12 left-8 w-56 h-32" viewBox="0 0 200 80" fill="none">
-                            <path d="M10 40 C40 10, 80 70, 120 40 C160 10, 190 60, 200 40" stroke="#f5a623" strokeWidth="3" strokeLinecap="round" fill="none" />
+                            <path d="M10 40 C40 10, 80 70, 120 40 C160 10, 190 60, 200 40" stroke="#ffb43b" strokeWidth="3" strokeLinecap="round" fill="none" />
                         </svg>
 
                         {/* Funds Released card */}
@@ -100,7 +100,7 @@ export default function HomePage() {
                         </div>
 
                         {/* Start Escrow card */}
-                        <div className="float-card absolute bottom-16 left-6 p-5 w-52 z-20">
+                        <div className="float-card absolute bottom-16 right-6 p-5 w-52 z-20">
                             <p className="text-sm font-semibold text-slate-700 mb-3">Start Escrow</p>
                             <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4"
                                 style={{ background: 'linear-gradient(135deg, #3b54f6, #7c3aed)' }}>
@@ -113,7 +113,7 @@ export default function HomePage() {
 
                         {/* Stars */}
                         <div className="absolute bottom-32 right-12 text-3xl text-slate-300">✦</div>
-                        <div className="absolute bottom-48 right-24 text-lg" style={{ color: '#f5a623' }}>✦</div>
+                        <div className="absolute bottom-48 right-24 text-lg" style={{ color: '#ffb43b' }}>✦</div>
                     </div>
                 </section>
 
@@ -184,7 +184,7 @@ export default function HomePage() {
                 {/* Footer */}
                 <footer className="border-t border-slate-100 py-8 px-12 flex items-center justify-between max-w-7xl mx-auto">
                     <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: '#f5a623' }}>
+                        <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: '#ffb43b' }}>
                             <Shield size={14} className="text-white" />
                         </div>
                         <span className="font-bold text-slate-700">EscrowX</span>

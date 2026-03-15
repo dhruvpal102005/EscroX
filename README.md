@@ -26,6 +26,8 @@ Traditional escrow services are slow, expensive, and rely on centralized interme
 
 ## 🏗 Project Architecture
 
+![Global Escrow System Architecture](public/assets/system-architecture.png)
+
 EscroX follows a modern full-stack architecture combining Web2 speed with Web3 security:
 
 ### 1. Smart Contracts (The Trust Layer)
@@ -44,9 +46,79 @@ EscroX follows a modern full-stack architecture combining Web2 speed with Web3 s
 - **Lucide-React**: A rich icon set for a premium UI feel.
 - **AuthGuard System**: Protected routes to ensure secure access to dashboards and contract details.
 
-### 4. Advanced Features
-- **AI Drafter**: Uses `@google/genai` to parse natural language prompts like *"I need a $2000 logo in 2 weeks"* into a structured 3-milestone contract.
-- **Fiat Bridge**: A simulated Razorpay integration allows clients to pay in INR, which "mints" virtual escrow tokens for freelancers to redeem.
+### 4. Escrow-as-a-Service (EaaS)
+- **Programmable Infrastructure**: Exposes the escrow engine as a standard REST API.
+- **Developer Portal**: Accessible at `/integration`, providing API keys and documentation.
+- **Webhook Capabilities**: Platforms can integrate automated payments into their own work flows.
+
+---
+
+## 🖼️ Visual Gallery
+
+Explore the EscroX interface and its key features.
+
+<table align="center">
+  <tr>
+    <td align="center">
+      <img src="public/screenshots/dashboard.png" width="400px" alt="Dashboard Analytics"/><br/>
+      <b>Personalized Dashboard</b><br/>
+      <i>Real-time insights and project tracking.</i>
+    </td>
+    <td align="center">
+      <img src="public/screenshots/new_contract.png" width="400px" alt="Create Contract"/><br/>
+      <b>Smart Contract Creation</b><br/>
+      <i>Detail-oriented setup with autonomous milestones.</i>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="public/screenshots/contract_view_funded.png" width="400px" alt="Active Contract"/><br/>
+      <b>Vault Management (Funded)</b><br/>
+      <i>Secure ETH locking with milestone stepper.</i>
+    </td>
+    <td align="center">
+      <img src="public/screenshots/contract_view_approved.png" width="400px" alt="Approved Milestone"/><br/>
+      <b>Evidence & Approval</b><br/>
+      <i>One-click payouts upon verified work.</i>
+    </td>
+  </tr>
+</table>
+
+<p align="center">
+  <img src="public/screenshots/api_docs.png" width="820px" alt="API Documentation"/><br/>
+  <b>Escrow-as-a-Service Portal</b><br/>
+  <i>Seamlessly integrate our engine into your platform.</i>
+</p>
+
+---
+
+## 🔌 API Documentation (v1)
+
+EscroX provides a unified API for external platforms (e.g., Fiverr, Upwork) to secure their payments.
+
+### Endpoints
+
+#### 1. Create Escrow
+`POST /api/v1/escrow/create`
+- **Body**: `clientData`, `freelancerData`, `contractData`.
+- **Returns**: `contractId`, `status`, `url`.
+
+#### 2. Approve Milestone
+`POST /api/v1/escrow/approve`
+- **Body**: `contractId`, `milestoneId`, `amount`.
+- **Returns**: Success confirmation.
+
+#### 3. Get Status
+`GET /api/v1/escrow/status/{id}`
+- **Returns**: Real-time contract status and milestone progress.
+
+---
+
+## 💎 Advanced Features & Innovation
+
+- **AI Contract Drafter**: Uses `@google/genai` to parse natural language prompts like *"I need a $2000 logo in 2 weeks"* into a structured 3-milestone contract.
+- **Fiat Bridge (BaaS)**: A simulated Razorpay integration allows clients to pay in INR, which "mints" virtual escrow tokens for freelancers to redeem.
+- **Global Compliance**: Standardized audit trails that provide "Proof of Delivery" across jurisdictions.
 
 ---
 

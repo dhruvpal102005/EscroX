@@ -7,7 +7,7 @@ import AuthGuard from '@/components/AuthGuard';
 import { useAuth } from '@/context/AuthContext';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { Plus, Trash2, ArrowLeft, Shield, Check, AlertCircle, Sparkles, X, Wallet, IndianRupee } from 'lucide-react';
+import { Plus, Trash2, ArrowLeft, Shield, Check, AlertCircle, Sparkles, X, Wallet, IndianRupee, PackageCheck, Wrench } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useWriteContract, useAccount, useSwitchChain, usePublicClient } from 'wagmi';
 import { parseEther } from 'viem';
@@ -39,6 +39,7 @@ export default function NewContractPage() {
         freelancerName: '', freelancerEmail: '', freelancerCountry: '',
         freelancerWallet: '',
         deadline: '', currency: 'USD',
+        workType: 'service', // 'service' | 'product'
         milestones: [{ title: '', amount: '', order: 0 }]
     });
     const [submitted, setSubmitted] = useState(false);
@@ -154,6 +155,7 @@ export default function NewContractPage() {
             totalValue: totalValue || 0,
             currency: form.currency || 'USD',
             deadline: form.deadline || '',
+            workType: form.workType || 'service',
             txHash,
             onChain,
             onChainId,
@@ -284,7 +286,7 @@ export default function NewContractPage() {
                     name: 'EscroX',
                     description: `Escrow: ${form.title || 'New Contract'}`,
                     order_id: orderData.orderId,
-                    theme: { color: '#f5a623' },
+                    theme: { color: '#ffb43b' },
                     prefill: { name: form.clientName, email: user.email || '' },
                     handler: async (response) => {
                         try {
@@ -310,6 +312,7 @@ export default function NewContractPage() {
                                         title: form.title,
                                         currency: form.currency,
                                         deadline: form.deadline,
+                                        workType: form.workType,
                                         milestones: form.milestones,
                                     },
                                 }),
@@ -466,6 +469,81 @@ export default function NewContractPage() {
                             </div>
                         </Card>
 
+                        {/* Work Type */}
+                        <Card className="p-6">
+                            <h2 className="font-bold text-slate-900 mb-1">Type of Work</h2>
+                            <p className="text-xs text-slate-400 mb-4">This determines how the freelancer will submit deliverables.</p>
+                            <div className="grid grid-cols-2 gap-3">
+                                {/* Service */}
+                                <button type="button" onClick={() => setForm(f => ({ ...f, workType: 'service' }))}
+                                    className={`relative flex flex-col items-center gap-2 p-5 rounded-2xl border-2 transition-all text-left ${
+                                        form.workType === 'service'
+                                            ? 'border-violet-500 bg-violet-50 shadow-sm shadow-violet-100'
+                                            : 'border-slate-200 bg-white hover:border-slate-300'
+                                    }`}>
+                                    {form.workType === 'service' && (
+                                        <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-violet-500 flex items-center justify-center">
+                                            <Check size={9} className="text-white" />
+                                        </span>
+                                    )}
+                                    <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${
+                                        form.workType === 'service' ? 'bg-violet-500' : 'bg-slate-100'
+                                    }`}>
+                                        <Wrench size={22} className={form.workType === 'service' ? 'text-white' : 'text-slate-400'} />
+                                    </div>
+                                    <span className={`text-sm font-bold ${form.workType === 'service' ? 'text-violet-700' : 'text-slate-600'}`}>
+                                        🔧 Service
+                                    </span>
+                                    <span className="text-[10px] text-slate-400 text-center leading-snug">
+                                        Freelancer submits a link (repo, Figma, doc…)
+                                    </span>
+                                </button>
+
+                                {/* Product */}
+                                <button type="button" onClick={() => setForm(f => ({ ...f, workType: 'product' }))}
+                                    className={`relative flex flex-col items-center gap-2 p-5 rounded-2xl border-2 transition-all text-left ${
+                                        form.workType === 'product'
+                                            ? 'border-orange-500 bg-orange-50 shadow-sm shadow-orange-100'
+                                            : 'border-slate-200 bg-white hover:border-slate-300'
+                                    }`}>
+                                    {form.workType === 'product' && (
+                                        <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-orange-500 flex items-center justify-center">
+                                            <Check size={9} className="text-white" />
+                                        </span>
+                                    )}
+                                    <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${
+                                        form.workType === 'product' ? 'bg-orange-500' : 'bg-slate-100'
+                                    }`}>
+                                        <PackageCheck size={22} className={form.workType === 'product' ? 'text-white' : 'text-slate-400'} />
+                                    </div>
+                                    <span className={`text-sm font-bold ${form.workType === 'product' ? 'text-orange-700' : 'text-slate-600'}`}>
+                                        📦 Product
+                                    </span>
+                                    <span className="text-[10px] text-slate-400 text-center leading-snug">
+                                        Freelancer submits a shipment tracking ID
+                                    </span>
+                                </button>
+                            </div>
+
+                            {form.workType === 'product' && (
+                                <div className="mt-3 flex items-start gap-2 p-3 rounded-xl bg-orange-50 border border-orange-200">
+                                    <PackageCheck size={13} className="text-orange-600 mt-0.5 shrink-0" />
+                                    <p className="text-xs text-orange-700 leading-snug">
+                                        The freelancer will select a courier (Ekart, DHL, FedEx, etc.) and enter a tracking ID.
+                                        You'll see <strong>real-time shipment status</strong> directly on this platform.
+                                    </p>
+                                </div>
+                            )}
+                            {form.workType === 'service' && (
+                                <div className="mt-3 flex items-start gap-2 p-3 rounded-xl bg-violet-50 border border-violet-200">
+                                    <Wrench size={13} className="text-violet-600 mt-0.5 shrink-0" />
+                                    <p className="text-xs text-violet-700 leading-snug">
+                                        The freelancer will share a submission link (GitHub, Figma, Google Drive, Loom, etc.) for your review.
+                                    </p>
+                                </div>
+                            )}
+                        </Card>
+
                         {/* Milestones */}
                         <Card className="p-6">
                             <div className="flex items-center justify-between mb-4">
@@ -478,7 +556,7 @@ export default function NewContractPage() {
                                 {form.milestones.map((m, i) => (
                                     <div key={i} className="flex items-center gap-3">
                                         <div className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-xs font-bold text-white"
-                                            style={{ background: '#f5a623' }}>{i + 1}</div>
+                                            style={{ background: '#ffb43b' }}>{i + 1}</div>
                                         <input required className="input flex-1 py-2" placeholder="Milestone title"
                                             value={m.title} onChange={e => updateMs(i, 'title', e.target.value)} />
                                         <div className="flex items-center gap-1 border border-slate-200 rounded-xl px-3 bg-slate-50">

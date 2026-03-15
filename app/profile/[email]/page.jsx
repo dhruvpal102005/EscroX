@@ -29,8 +29,8 @@ export default function PublicProfilePage() {
         <div className="flex gap-0.5">
             {[1, 2, 3, 4, 5].map(n => (
                 <Star key={n} size={16}
-                    fill={count >= n ? '#f5a623' : 'none'}
-                    stroke={count >= n ? '#f5a623' : '#cbd5e1'}
+                    fill={count >= n ? '#ffb43b' : 'none'}
+                    stroke={count >= n ? '#ffb43b' : '#cbd5e1'}
                 />
             ))}
         </div>
@@ -48,7 +48,7 @@ export default function PublicProfilePage() {
 
                 {/* Profile Header */}
                 <div className="bg-white rounded-[24px] p-8 shadow-sm border border-slate-100 mb-6 flex flex-col sm:flex-row items-center sm:items-start gap-6">
-                    <div className="w-20 h-20 rounded-full bg-slate-200 overflow-hidden border-4 border-[#f5a623] shrink-0">
+                    <div className="w-20 h-20 rounded-full bg-slate-200 overflow-hidden border-4 border-[#ffb43b] shrink-0">
                         <img
                             src={`https://api.dicebear.com/7.x/notionists/svg?seed=${decodedEmail}&backgroundColor=e2e8f0`}
                             alt={decodedEmail}
@@ -97,7 +97,7 @@ export default function PublicProfilePage() {
                                     </div>
                                 </div>
                                 {r.comment && (
-                                    <p className="text-sm text-slate-600 italic border-l-2 border-[#f5a623] pl-3">"{r.comment}"</p>
+                                    <p className="text-sm text-slate-600 italic border-l-2 border-[#ffb43b] pl-3">"{r.comment}"</p>
                                 )}
                                 {r.createdAt?.toDate && (
                                     <p className="text-[10px] text-slate-300 mt-3">

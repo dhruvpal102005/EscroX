@@ -117,6 +117,7 @@ export async function POST(req) {
             totalValue,
             currency: formData.currency || 'USD',
             deadline: formData.deadline || '',
+            workType: formData.workType || 'service',
             txHash,
             onChain: !!onChainProjectId,
             onChainId: onChainProjectId,
