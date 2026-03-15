@@ -43,6 +43,7 @@ export default function ContractPage() {
     const [contract, setContract] = useState(null);
     const [loading, setLoading] = useState(true);
     const [evidence, setEvidence] = useState({});
+    const [evidenceImage, setEvidenceImage] = useState({});
     const [reviews, setReviews] = useState({});
     const [myRating, setMyRating] = useState(0);
     const [hoverRating, setHoverRating] = useState(0);
@@ -59,7 +60,9 @@ export default function ContractPage() {
     const [payoutSuccess, setPayoutSuccess] = useState(null);
 
     // Submission confirmation state
-    const [confirmSubmit, setConfirmSubmit] = useState(null); // { milestoneId, evidenceUrl }
+    const [confirmSubmit, setConfirmSubmit] = useState(null); // { milestoneId, evidenceUrl, evidenceImageUrl, milestoneTitle }
+    const [rejectionModal, setRejectionModal] = useState(null); // { id, title, amount }
+    const [rejectionReason, setRejectionReason] = useState('');
 
     const sendNotification = async (to, subject, type, data) => {
         try {
@@ -430,6 +433,84 @@ export default function ContractPage() {
                                 </div>
                             )}
 
+
+
+                            {/* Rejection Modal */}
+                            {rejectionModal && (
+                                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+                                    <div className="bg-white rounded-[24px] shadow-2xl w-full max-w-lg overflow-hidden border border-slate-100 animate-in fade-in zoom-in duration-200">
+                                        <div className="p-6 border-b border-slate-50 flex items-center justify-between bg-red-50/30">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center">
+                                                    <XCircle size={20} className="text-red-500" />
+                                                </div>
+                                                <div>
+                                                    <h3 className="font-black text-slate-900">Reject Submission</h3>
+                                                    <p className="text-[11px] text-slate-400">Milestone: {rejectionModal.title}</p>
+                                                </div>
+                                            </div>
+                                            <button onClick={() => { setRejectionModal(null); setRejectionReason(''); }} className="text-slate-400 hover:text-slate-600">
+                                                <X size={20} />
+                                            </button>
+                                        </div>
+
+                                        <div className="p-6">
+                                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Reason for Rejection (Min 100 characters)</label>
+                                            <textarea
+                                                value={rejectionReason}
+                                                onChange={(e) => setRejectionReason(e.target.value)}
+                                                placeholder="Explain exactly why this submission doesn't meet requirements..."
+                                                rows={5}
+                                                className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm feedback-focus outline-none resize-none transition-all placeholder:text-slate-300"
+                                            />
+                                            <div className="flex items-center justify-between mt-2">
+                                                <span className={`text-[10px] font-bold ${rejectionReason.length >= 100 ? 'text-emerald-500' : 'text-slate-400'}`}>
+                                                    {rejectionReason.length} / 100 characters
+                                                </span>
+                                                {rejectionReason.length < 100 && (
+                                                    <span className="text-[10px] font-medium text-red-400 italic">
+                                                        Need {100 - rejectionReason.length} more
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {(contract.rejectionCount || 0) >= 3 && (
+                                                <div className="mt-4 p-4 rounded-xl bg-amber-50 border border-amber-100 flex gap-3">
+                                                    <AlertTriangle size={18} className="text-amber-500 shrink-0" />
+                                                    <div>
+                                                        <p className="text-xs font-bold text-amber-800">Penalty Warning</p>
+                                                        <p className="text-[11px] text-amber-700 mt-0.5">
+                                                            You have used your 3 free rejections. This rejection will incur a **10% penalty** of the project budget (${(contract.totalValue * 0.1).toFixed(2)}).
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            <div className="flex gap-3 mt-6">
+                                                <button
+                                                    onClick={() => { setRejectionModal(null); setRejectionReason(''); }}
+                                                    className="flex-1 px-5 py-3 rounded-xl border border-slate-200 text-sm font-bold text-slate-500 hover:bg-slate-50 transition-all">
+                                                    Cancel
+                                                </button>
+                                                <button
+                                                    disabled={rejectionReason.length < 100 || !!actionLoading}
+                                                    onClick={() => {
+                                                        const mId = rejectionModal.id;
+                                                        const title = rejectionModal.title;
+                                                        setRejectionModal(null);
+                                                        act(`rej-${mId}`, () => rejectMilestone(id, mId, title, contract.clientName, rejectionReason));
+                                                        setRejectionReason('');
+                                                    }}
+                                                    className="flex-1 flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-bold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    style={{ background: '#ef4444' }}>
+                                                    {actionLoading ? 'Processing...' : 'Confirm Rejection'}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Simple Confirmation Modal — Freelancer */}
                             {confirmSubmit && (
                                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
@@ -447,9 +528,12 @@ export default function ContractPage() {
                                         </div>
                                         <div className="p-6">
                                             <p className="text-sm text-slate-600 mb-2">You are about to submit work for:</p>
-                                            <div className="bg-slate-50 rounded-xl p-4 mb-4 border border-slate-100">
+                                            <div className="bg-slate-50 rounded-xl p-4 mb-4 border border-slate-100 space-y-2">
                                                 <p className="text-sm font-bold text-slate-900">{confirmSubmit.milestoneTitle}</p>
-                                                <p className="text-xs text-slate-400 mt-1.5 truncate">🔗 {confirmSubmit.evidenceUrl}</p>
+                                                <p className="text-xs text-slate-400 truncate">🔗 {confirmSubmit.evidenceUrl}</p>
+                                                {confirmSubmit.evidenceImageUrl && (
+                                                    <p className="text-xs text-slate-400 truncate">🖼️ {confirmSubmit.evidenceImageUrl}</p>
+                                                )}
                                             </div>
                                             <p className="text-xs text-slate-500 mb-5">Are you sure you want to submit this link? The client will be notified and our AI will verify the submission.</p>
                                             <div className="flex gap-3">
@@ -461,7 +545,7 @@ export default function ContractPage() {
                                                 <button
                                                     disabled={!!actionLoading}
                                                     onClick={async () => {
-                                                        const { milestoneId, evidenceUrl } = confirmSubmit;
+                                                        const { milestoneId, evidenceUrl, evidenceImageUrl } = confirmSubmit;
                                                         setConfirmSubmit(null);
                                                         // Submit immediately, AI runs in background
                                                         let aiResult = null;
@@ -469,13 +553,18 @@ export default function ContractPage() {
                                                             const res = await fetch('/api/verify-submission', {
                                                                 method: 'POST',
                                                                 headers: { 'Content-Type': 'application/json' },
-                                                                body: JSON.stringify({ evidenceUrl, milestoneTitle: confirmSubmit.milestoneTitle, contractTitle: contract.title }),
+                                                                body: JSON.stringify({
+                                                                    evidenceUrl,
+                                                                    evidenceImageUrl,
+                                                                    milestoneTitle: confirmSubmit.milestoneTitle,
+                                                                    contractTitle: contract.title
+                                                                }),
                                                             });
                                                             aiResult = await res.json();
                                                         } catch (err) {
                                                             console.error('AI verify error (non-blocking):', err);
                                                         }
-                                                        act(`sub-${milestoneId}`, () => submitMilestone(id, milestoneId, evidenceUrl, contract.freelancerName, aiResult));
+                                                        act(`sub-${milestoneId}`, () => submitMilestone(id, milestoneId, evidenceUrl, evidenceImageUrl, contract.freelancerName, aiResult));
                                                     }}
                                                     className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-60 transition-all"
                                                     style={{ background: 'linear-gradient(135deg, #f5a623, #e09000)' }}>
@@ -514,11 +603,12 @@ export default function ContractPage() {
                                                 <div className="flex items-start justify-between gap-4">
                                                     <div className="flex items-start gap-3 flex-1 min-w-0">
                                                         {/* Status icon circle */}
-                                                        <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${m.status === 'Approved' ? 'bg-green-100' : m.status === 'Submitted' ? 'bg-amber-100' : isLocked ? 'bg-slate-100' : 'bg-slate-100'}`}>
+                                                        <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${m.status === 'Approved' ? 'bg-green-100' : m.status === 'Submitted' ? 'bg-amber-100' : m.status === 'Rejected' ? 'bg-red-100' : isLocked ? 'bg-slate-100' : 'bg-slate-100'}`}>
                                                             {m.status === 'Approved' ? <CheckCircle size={16} className="text-green-500" />
                                                                 : m.status === 'Submitted' ? <Upload size={16} className="text-amber-500" />
-                                                                    : isLocked ? <Lock size={14} className="text-slate-400" />
-                                                                        : <span className="text-xs font-bold text-slate-400">{idx + 1}</span>}
+                                                                    : m.status === 'Rejected' ? <XCircle size={16} className="text-red-500" />
+                                                                        : isLocked ? <Lock size={14} className="text-slate-400" />
+                                                                            : <span className="text-xs font-bold text-slate-400">{idx + 1}</span>}
                                                         </div>
                                                         <div className="min-w-0">
                                                             <h3 className="font-bold text-slate-900 text-sm">{m.title}</h3>
@@ -529,10 +619,23 @@ export default function ContractPage() {
                                                                             : 'Pending'}
                                                             </p>
                                                             {m.evidenceUrl && m.status === 'Submitted' && (
-                                                                <a href={m.evidenceUrl} target="_blank" rel="noreferrer"
-                                                                    className="inline-flex items-center gap-1 text-[10px] text-blue-600 hover:underline mt-1">
-                                                                    <ExternalLink size={10} /> View Evidence
-                                                                </a>
+                                                                <div className="flex flex-wrap gap-3 mt-2">
+                                                                    <a href={m.evidenceUrl} target="_blank" rel="noreferrer"
+                                                                        className="inline-flex items-center gap-1 text-[10px] text-blue-600 hover:underline">
+                                                                        <ExternalLink size={10} /> View Evidence
+                                                                    </a>
+                                                                    {m.evidenceImageUrl && (
+                                                                        <a href={m.evidenceImageUrl} target="_blank" rel="noreferrer"
+                                                                            className="inline-flex items-center gap-1 text-[10px] text-emerald-600 hover:underline">
+                                                                            <Download size={10} /> View Screenshot
+                                                                        </a>
+                                                                    )}
+                                                                </div>
+                                                            )}
+                                                            {m.evidenceImageUrl && m.status === 'Submitted' && (
+                                                                <div className="mt-3 rounded-lg overflow-hidden border border-slate-100 max-w-[200px]">
+                                                                    <img src={m.evidenceImageUrl} alt="Submission Screenshot" className="w-full h-auto object-cover hover:scale-105 transition-transform cursor-pointer" onClick={() => window.open(m.evidenceImageUrl, '_blank')} />
+                                                                </div>
                                                             )}
                                                         </div>
                                                     </div>
@@ -578,20 +681,33 @@ export default function ContractPage() {
                                                 )}
 
                                                 {/* Submit Work — Freelancer only */}
-                                                {m.status === 'Pending' && isFreelancer && contract.status !== 'Agreement' && contract.status !== 'Rejected' && !isLocked && (
-                                                    <div className="mt-4 pt-4 border-t border-slate-100 flex gap-2">
-                                                        <input value={evidence[m.id] || ''} onChange={e => setEvidence(p => ({ ...p, [m.id]: e.target.value }))}
-                                                            placeholder="Evidence URL (GitHub, Figma, Loom...)" className="input flex-1 py-2 text-xs" />
-                                                        <button disabled={!!actionLoading}
-                                                            onClick={() => {
-                                                                const url = evidence[m.id]?.trim();
-                                                                if (!url) { toast.error('Please enter an evidence URL'); return; }
-                                                                setConfirmSubmit({ milestoneId: m.id, evidenceUrl: url, milestoneTitle: m.title });
-                                                            }}
-                                                            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white disabled:opacity-60 transition-all"
-                                                            style={{ background: '#f5a623' }}>
-                                                            <Upload size={12} /> {actionLoading === `sub-${m.id}` ? '...' : 'Submit Work'}
-                                                        </button>
+                                                {(m.status === 'Pending' || m.status === 'Rejected') && isFreelancer && contract.status !== 'Agreement' && contract.status !== 'Rejected' && !isLocked && (
+                                                    <div className="mt-4 pt-4 border-t border-slate-100 space-y-3">
+                                                        <div className="flex gap-2">
+                                                            <div className="flex-1 space-y-2">
+                                                                <input value={evidence[m.id] || ''} onChange={e => setEvidence(p => ({ ...p, [m.id]: e.target.value }))}
+                                                                    placeholder="Compulsory: Evidence URL (GitHub, Figma, Loom...)" className="input w-full py-2 text-xs" />
+                                                                <input value={evidenceImage[m.id] || ''} onChange={e => setEvidenceImage(p => ({ ...p, [m.id]: e.target.value }))}
+                                                                    placeholder="Optional: Screenshot/Image URL" className="input w-full py-2 text-xs" />
+                                                            </div>
+                                                            <button disabled={!!actionLoading}
+                                                                onClick={() => {
+                                                                    const url = evidence[m.id]?.trim();
+                                                                    const imgUrl = evidenceImage[m.id]?.trim() || null;
+                                                                    if (!url) { toast.error('Please enter an evidence URL'); return; }
+                                                                    setConfirmSubmit({
+                                                                        milestoneId: m.id,
+                                                                        evidenceUrl: url,
+                                                                        evidenceImageUrl: imgUrl,
+                                                                        milestoneTitle: m.title
+                                                                    });
+                                                                }}
+                                                                className="flex items-center justify-center gap-1.5 px-6 rounded-xl text-xs font-bold text-white disabled:opacity-60 transition-all self-stretch"
+                                                                style={{ background: '#f5a623' }}>
+                                                                <Upload size={14} /> {actionLoading === `sub-${m.id}` ? '...' : 'Submit Work'}
+                                                            </button>
+                                                        </div>
+                                                        <p className="text-[10px] text-slate-400">Ensure the evidence URL is accessible. Screenshots help with faster manual review.</p>
                                                     </div>
                                                 )}
 
@@ -605,10 +721,17 @@ export default function ContractPage() {
                                                             <CheckCircle size={12} /> {actionLoading === `app-${m.id}` ? '...' : `Approve & Release $${m.amount}`}
                                                         </button>
                                                         <button disabled={!!actionLoading}
-                                                            onClick={() => act(`rej-${m.id}`, () => rejectMilestone(id, m.id, m.title, contract.clientName))}
+                                                            onClick={() => setRejectionModal({ id: m.id, title: m.title, amount: m.amount })}
                                                             className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-red-600 border border-red-200 hover:bg-red-50 disabled:opacity-60 transition-all">
-                                                            <XCircle size={12} /> Reject
+                                                            <XCircle size={12} /> Reject {contract.rejectionCount > 0 ? `(${contract.rejectionCount})` : ''}
                                                         </button>
+                                                    </div>
+                                                )}
+
+                                                {m.status === 'Rejected' && (
+                                                    <div className="mt-3 p-3 bg-red-50 rounded-xl border border-red-100">
+                                                        <p className="text-[10px] font-bold text-red-600 uppercase mb-1">Rejection Reason</p>
+                                                        <p className="text-xs text-red-700 italic">{m.rejectionReason}</p>
                                                     </div>
                                                 )}
 
