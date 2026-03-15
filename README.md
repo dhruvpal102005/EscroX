@@ -143,6 +143,37 @@ A centralized view for clients and freelancers to manage multiple projects:
 
 ---
 
+## 💰 Business Model: Escrow-as-a-Service (BaaS)
+
+EscroX is designed as a scalable financial infrastructure for the global gig economy. Our revenue model focuses on "Trust-as-a-Service":
+
+1. **Transaction Fees (API Tier)**: A flat **0.5% - 1.5% fee** on every successful milestone payout processed via our API. This is significantly lower than the 3-5% charged by traditional credit card processors.
+2. **Dispute Mediation Fees**: For complex contracts requiring human arbitration (Phase 3), a standard fee is applied to the dispute resolution process.
+3. **Enterprise Whitelabeling**: Subscription-based model for large marketplaces (e.g., a "Fiverr for India") to use our vault infrastructure with their own branding.
+4. **Yield Generation (DeFi)**: Strategic integration with protocols like Aave to generate yield on locked funds (split between the platform and the user).
+
+---
+
+## 📈 Go-To-Market (GTM) Strategy
+
+Our strategy focuses on "Plugging into existing demand" rather than building a new marketplace from scratch:
+
+### Phase 1: Developer Adoption (Hackathon & Community)
+- Build a robust **BaaS API** and developer portal.
+- Target hackathons and niche developer communities to bootstrap the first 50 integrations.
+- Open-source the core SDKs to build credibility.
+
+### Phase 2: Strategic Integrations
+- Partner with **Niche Marketplaces** (e.g., Web3 job boards, boutique design agencies) that lack in-house payment infrastructure.
+- Launch a **WordPress & Shopify Plugin** allowing any e-commerce site to accept escrowed payments for custom services.
+
+### Phase 3: Global Institutional Layer
+- Become the default **Cross-Border Payment Layer** for high-risk, high-value gig work.
+- Integrate with **L2 Omni-chains** for zero-cost, instant global settlement.
+- Expand into real estate and high-value digital asset (NFT/Domain) escrow.
+
+---
+
 ## 💻 Developer Setup
 
 1. **Clone & Install**:
